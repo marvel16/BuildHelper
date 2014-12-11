@@ -23,10 +23,10 @@
                  Controls:TextBoxHelper.Watermark="Enter batch file path here!"/>
         <GroupBox x:Name="BuildOptions_Groupbox" Header="Build options" HorizontalAlignment="Left" Height="179" Margin="297,21,0,0" VerticalAlignment="Top" Width="126">
             <Grid x:Name="grpboxGrid" Margin="-3,2,-2,2">
-                <CheckBox x:Name="x64D_checkbox" Content="Debug x64" HorizontalAlignment="Center" Height="25" Margin="10,40,0,0" VerticalAlignment="Top" Width="100" IsChecked="True" Foreground="White"/>
-                <CheckBox x:Name="x64R_checkbox" Content="Release x64                   " HorizontalAlignment="Center" Height="25" Margin="10,10,0,0" VerticalAlignment="Top" Width="100" IsChecked="True" Foreground="#FFFDFDFD"/>
-                <CheckBox x:Name="x86R_checkbox" Content="Release x86" HorizontalAlignment="Center" Margin="10,70,0,0" VerticalAlignment="Top" IsChecked="True" Foreground="White" Width="100" Height="25"/>
-                <CheckBox x:Name="x86D_checkbox" Content="Debug x86" HorizontalAlignment="Center" Margin="10,100,0,0" VerticalAlignment="Top" Foreground="White" IsChecked="True" Width="100" Height="25"/>
+                <CheckBox x:Name="x64D_checkbox" Content="Debug x64" HorizontalAlignment="Center" Height="25" Margin="10,40,0,0" VerticalAlignment="Top" Width="100" IsChecked="True" Foreground="White" Checked="x64D_checkbox_CheckedChange"/>
+                <CheckBox x:Name="x64R_checkbox" Content="Release x64" HorizontalAlignment="Center" Height="25" Margin="10,10,0,0" VerticalAlignment="Top" Width="100" IsChecked="True" Foreground="#FFFDFDFD" Checked="x64R_checkbox_CheckedChange"/>
+                <CheckBox x:Name="x86R_checkbox" Content="Release x86" HorizontalAlignment="Center" Margin="10,70,0,0" VerticalAlignment="Top" IsChecked="True" Foreground="White" Width="100" Height="25" Checked="x86R_checkbox_CheckedChange"/>
+                <CheckBox x:Name="x86D_checkbox" Content="Debug x86" HorizontalAlignment="Center" Margin="10,100,0,0" VerticalAlignment="Top" Foreground="White" IsChecked="True" Width="100" Height="25" Checked="x86D_checkbox_CheckedChange"/>
             </Grid>
         </GroupBox>
         <GroupBox x:Name="Source_Control" Header="Source Control" HorizontalAlignment="Left" Height="179" Margin="10,21,0,0" VerticalAlignment="Top" Width="253">

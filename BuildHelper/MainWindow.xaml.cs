@@ -40,5 +40,28 @@ namespace BuildHelper
 			bBuildsLaunched = true;
 			Launch.Content = "Cancel builds";
 		}
+
+		//
+		//Build checkboxes checked event handlers
+		//
+		private void x64R_checkbox_CheckedChange( object sender, RoutedEventArgs e )
+		{
+
+		}
+
+		private void x64D_checkbox_CheckedChange( object sender, RoutedEventArgs e )
+		{
+
+		}
+
+		private void x86R_checkbox_CheckedChange( object sender, RoutedEventArgs e )
+		{
+
+		}
+
+		private void x86D_checkbox_CheckedChange( object sender, RoutedEventArgs e )
+		{
+
+		}
 	}
 }
