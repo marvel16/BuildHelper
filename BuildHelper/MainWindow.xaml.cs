@@ -51,27 +51,34 @@ namespace BuildHelper
 
 		private void LaunchButton_OnClick(object sender, EventArgs e)
 		{
+			if(Config.Count == 0)
+			{
+				MessageBox.Show("Config is empty");
+				return;
+			}
 			status_progressRing.IsActive = !status_progressRing.IsActive;
 			if ( bBuildsLaunched )
 			{
 				//TODO: cancel builds
 				Launch.Content = "Launch builds!";
+				bBuildsLaunched = !bBuildsLaunched;
 				return;
 			}
 			//TODO: launch builds
 			List<Process> ProcessPool = new List<Process>();
 			for ( int i=0; i < Config.Count; i++ )
-			{ 
+			{
+				string rebuildInfo = ParseConfig(Config[i]);
 				ProcessStartInfo start = new ProcessStartInfo();
 				start.FileName = "C:/Program Files (x86)/Microsoft Visual Studio 12.0/Common7/IDE/devenv.com";
 				start.UseShellExecute = false;
 				start.RedirectStandardOutput = true;
-				start.Arguments = Config[i].ProjectPath + @" /REBUILD debug|x64";
+				start.Arguments = Config[i].ProjectPath + @" /REBUILD " + rebuildInfo;
 				ProcessPool.Add(Process.Start(start));
 			}
 			string result;
 			while ( ( result = ProcessPool[0].StandardOutput.ReadLine() ) != null )
-				Trace.WriteLine(result);
+				output_listbox.Items.Add(result);
 
 				bBuildsLaunched = true;
 			Launch.Content = "Cancel builds";
@@ -159,6 +166,20 @@ namespace BuildHelper
 				Projectpath_textbox.Background = Brushes.Red;
 			else
 				Projectpath_textbox.Background = Brushes.White;
+		}
+
+		private string ParseConfig(Project sol)
+		{
+			string ret = string.Empty;
+			if ( sol.isChecked_x64D )
+				ret = @"Debug|x64";
+			if ( sol.isChecked_x86D )
+				ret = @"Debug|x86";
+			if ( sol.isChecked_x64R )
+				ret = @"Release|x64";
+			if ( sol.isChecked_x86R )
+				ret = @"Release|x86";
+			return ret;
 		}
 
 		private void FetchButton_OnClick( object sender, RoutedEventArgs e )

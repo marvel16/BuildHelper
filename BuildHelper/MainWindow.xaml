@@ -5,7 +5,7 @@
         xmlns:Controls="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
         ResizeMode="CanResizeWithGrip"
         EnableDWMDropShadow="True"           
-        Title="Build Helper" Height="502" Width="669" MinHeight="375" MinWidth="600" WindowStartupLocation="CenterScreen" Background="#FF323232" WindowStyle="ThreeDBorderWindow">
+        Title="Build Helper" Height="502" Width="669" MinHeight="500" MinWidth="700" WindowStartupLocation="CenterScreen" Background="#FF323232" WindowStyle="ThreeDBorderWindow">
     <Controls:MetroWindow.Resources>
         <Color x:Key="Color1">#19FFFFFF</Color>
     </Controls:MetroWindow.Resources>
@@ -20,14 +20,13 @@
                 Click="LaunchButton_OnClick"
                 Margin="0,0,10,10" Height="27" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="126"/>
         <Controls:ProgressRing x:Name="status_progressRing" Foreground="{DynamicResource AccentColorBrush}" IsActive="False" Margin="0,0,10,62" Height="120" Width="126" HorizontalAlignment="Right" VerticalAlignment="Bottom"/>
-        <Controls:MetroAnimatedSingleRowTabControl x:Name="maintabcontrol" Margin="10,10,163,10">
+        <Controls:MetroAnimatedSingleRowTabControl x:Name="maintabcontrol" Margin="10,10,152,10">
             <TabItem Header="Build Cfg">
                 <Grid Background="#FF323232" Margin="0,4,-17,-4">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="52*"/>
-                        <ColumnDefinition Width="111*"/>
+                        <ColumnDefinition/>
                     </Grid.ColumnDefinitions>
-                    <GroupBox x:Name="BuildOptions_Groupbox_Copy" Header="Build options" HorizontalAlignment="Left" Height="182" Margin="157,37,0,0" VerticalAlignment="Top" Width="135" Grid.Column="1">
+                    <GroupBox x:Name="BuildOptions_Groupbox_Copy" Header="Build options" HorizontalAlignment="Right" Height="182" Margin="0,42,27,0" VerticalAlignment="Top" Width="135">
                         <Grid x:Name="grpboxGrid1" Margin="-3,2,-2,2">
                             <CheckBox x:Name="x64D_checkbox1" Content="Debug x64" HorizontalAlignment="Center" Height="25" Margin="10,40,0,0" VerticalAlignment="Top" Width="100" Foreground="White" Checked="x64D_checkbox_CheckedChange" Unchecked="x64D_checkbox_CheckedChange"/>
                             <CheckBox x:Name="x64R_checkbox1" Content="Release x64" HorizontalAlignment="Center" Height="25" Margin="10,10,0,0" VerticalAlignment="Top" Width="100" Foreground="#FFFDFDFD" Checked="x64R_checkbox_CheckedChange" Unchecked="x64R_checkbox_CheckedChange"/>
@@ -35,18 +34,18 @@
                             <CheckBox x:Name="x86D_checkbox1" Content="Debug x86" HorizontalAlignment="Center" Margin="10,100,0,0" VerticalAlignment="Top" Foreground="White" Width="100" Height="25" Checked="x86D_checkbox_CheckedChange" Unchecked="x86D_checkbox_CheckedChange"/>
                         </Grid>
                     </GroupBox>
-                    <Button x:Name="removeproject_button" Content="Remove project" Margin="0,0,40,14"
+                    <Button x:Name="removeproject_button" Content="Remove project" Margin="0,0,402,14"
                     	Style="{StaticResource AccentedSquareButtonStyle}" Height="29" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="106" Click="removeproject_button_Click"/>
-                    <Label x:Name="choosesol_label" Content="Choose Solution" Foreground="White"  HorizontalAlignment="Left" Height="27" Margin="10,10,0,0" VerticalAlignment="Top" Width="191" FontSize="14" Background="{x:Null}" FontFamily="Times New Roman" Grid.ColumnSpan="2"/>
-                    <ListBox x:Name="ProjectListBox" Height="197" Margin="10,42,0,0" VerticalAlignment="Top" SelectionChanged="ProjectListBox_SelectionChanged" HorizontalAlignment="Left" Width="248" Grid.ColumnSpan="2"/>
+                    <Label x:Name="choosesol_label" Content="Choose Solution" Foreground="White"  HorizontalAlignment="Left" Height="27" Margin="10,10,0,0" VerticalAlignment="Top" Width="191" FontSize="14" Background="{x:Null}" FontFamily="Times New Roman"/>
+                    <ListBox x:Name="ProjectListBox" Height="197" Margin="10,42,273,0" VerticalAlignment="Top" SelectionChanged="ProjectListBox_SelectionChanged"/>
                     <Button x:Name="createProject_button" Content="Add Project" Margin="0,0,231,14"
-                    	Style="{StaticResource AccentedSquareButtonStyle}" Height="29" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="116" Click="createProject_button_Click" Grid.ColumnSpan="2"/>
+                    	Style="{StaticResource AccentedSquareButtonStyle}" Height="29" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="116" Click="createProject_button_Click"/>
                     <TextBox x:Name="Projectname_textbox" Height="26" Margin="10,0,27,105" TextWrapping="Wrap" Text="" VerticalAlignment="Bottom" 
                     	Controls:TextBoxHelper.ClearTextButton="True"
-                    	Controls:TextBoxHelper.Watermark="Enter solution ID (e.g. DMS)" Grid.ColumnSpan="2"/>
+                    	Controls:TextBoxHelper.Watermark="Enter solution ID (e.g. DMS)"/>
                     <TextBox x:Name="Projectpath_textbox" Height="26" Margin="10,0,27,64" TextWrapping="Wrap" Text="" VerticalAlignment="Bottom" 
                     	Controls:TextBoxHelper.ClearTextButton="True"
-                    	Controls:TextBoxHelper.Watermark="Enter solution full path" TextChanged="Projectpath_textbox_TextChanged" Background="White" Grid.ColumnSpan="2"/>
+                    	Controls:TextBoxHelper.Watermark="Enter solution full path" TextChanged="Projectpath_textbox_TextChanged" Background="White"/>
                 </Grid>
             </TabItem>
             <TabItem Header="TFS">
@@ -68,7 +67,7 @@
                             <TextBox x:Name="requestpath_textbox" Height="27" Margin="10,154,10,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top"
                             	Controls:TextBoxHelper.ClearTextButton="True"
                             	Controls:TextBoxHelper.Watermark="Enter Requested path e.g. $\IDMS\CurrentDev"/>
-                            <PasswordBox x:Name="pw_passwordbox" HorizontalAlignment="Left" Margin="10,197,0,0" VerticalAlignment="Top"  Height="27" Width="356"
+                            <PasswordBox x:Name="pw_passwordbox" Margin="10,197,10,0" VerticalAlignment="Top"  Height="27"
                                          Controls:TextBoxHelper.Watermark="Enter user password"
                                          MaxLength="14"/>
                             <CheckBox x:Name="rememberLogin_checkbox" Content="Remember login info" HorizontalAlignment="Left" Margin="10,229,0,0" VerticalAlignment="Top" Height="28" Width="153" Foreground="White" Checked="rememberTFScfg_click"/>
@@ -80,8 +79,14 @@
                     </GroupBox>
                 </Grid>
             </TabItem>
-            <TabItem Header="Schedule">
-                <Grid Background="#FF323232"/>
+            <TabItem Header="Output">
+                <Grid Background="#FF323232">
+                    <ListBox x:Name="output_listbox" Margin="0,0,10,10" Background="{x:Null}">
+                        <TextBlock Padding="0,0,10,0" 
+                        Text="{Binding Path=Color, Mode=Default}"
+                        />
+                    </ListBox>
+                </Grid>
             </TabItem>
             <Grid Margin="10,10,10,8"/>
         </Controls:MetroAnimatedSingleRowTabControl>
