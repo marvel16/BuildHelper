@@ -61,7 +61,7 @@ namespace BuildHelper
 			status_progressRing.IsActive = !status_progressRing.IsActive;
 			if (bBuildsLaunched)
 			{
-				foreach ( Process proc in ProcessPool )
+				foreach (Process proc in ProcessPool)
 					proc.Close();
 				ProcessPool.Clear();
 				output_listbox.Items.Add("BUILDS CANCELLED!");
@@ -99,7 +99,14 @@ namespace BuildHelper
 				start.UseShellExecute = false;
 				start.RedirectStandardOutput = true;
 				start.Arguments = config.Prjcfg[i].ProjectPath + @" /REBUILD " + rebuildInfo;
-				ProcessPool.Add(Process.Start(start));
+				try
+				{
+					ProcessPool.Add(Process.Start(start));
+				}
+				catch(Exception ex)
+				{
+					MessageBox.Show("Failed to launch builds:" + ex.Message);
+				}
 			}
 		}
 
@@ -211,12 +218,20 @@ namespace BuildHelper
 			string tfsPath = tfs_path_textbox.Text;
 			string tfsWorkSpace = tfs_workspace_textbox.Text;
 			string requestPath = requestpath_textbox.Text;
-			ICredentials myCred = new NetworkCredential(userName, userPass);
-			TeamFoundationServer tfs = new TeamFoundationServer(tfsPath, myCred);
-			VersionControlServer vcs = tfs.GetService<VersionControlServer>();
-			Workspace myWorkspace = vcs.GetWorkspace(tfsWorkSpace, vcs.AuthorizedUser);
-			GetRequest request = new GetRequest(new ItemSpec(requestPath, RecursionType.Full), VersionSpec.Latest);
-			GetStatus getStat = myWorkspace.Get(request, GetOptions.None);
+
+			try
+			{
+				ICredentials myCred = new NetworkCredential(userName, userPass);
+				TeamFoundationServer tfs = new TeamFoundationServer(tfsPath, myCred);
+				VersionControlServer vcs = tfs.GetService<VersionControlServer>();
+				Workspace myWorkspace = vcs.GetWorkspace(tfsWorkSpace, vcs.AuthorizedUser);
+				GetRequest request = new GetRequest(new ItemSpec(requestPath, RecursionType.Full), VersionSpec.Latest);
+				GetStatus getStat = myWorkspace.Get(request, GetOptions.None);
+			}
+			catch(Exception ex)
+			{
+				MessageBox.Show("TFS Connection failed: " + ex.Message);
+			}
 		}
 
 		private void FetchCheckBox_Click( object sender, RoutedEventArgs e )
