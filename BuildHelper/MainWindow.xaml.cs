@@ -19,6 +19,7 @@ using System.Threading;
 using System.Xml.Serialization;
 using System.IO;
 using MahApps.Metro.Controls;
+using MahApps.Metro.Controls.Dialogs;
 using System.Net;
 using System.ComponentModel;
 using Microsoft.TeamFoundation;
@@ -36,7 +37,9 @@ namespace BuildHelper
 		private CfgMan config = new CfgMan();
 		private List<CheckBox> checkboxes = new List<CheckBox>();
 		private List<Process> ProcessPool = new List<Process>();
-		
+		private int num_procexited = 0;
+		private object locker = new object();
+
 		public MainWindow( )
 		{
 			InitializeComponent();
@@ -64,9 +67,10 @@ namespace BuildHelper
 				foreach (Process proc in ProcessPool)
 					proc.Close();
 				ProcessPool.Clear();
+				num_procexited = 0;
 				output_listbox.Items.Add("BUILDS CANCELLED!");
 				Launch.Content = "Launch builds!";
-				bBuildsLaunched = !bBuildsLaunched;
+				bBuildsLaunched = false;
 				return;
 			}
 
@@ -84,7 +88,14 @@ namespace BuildHelper
 			string result = ProcessPool[0].StandardOutput.ReadLine();
 			while ( result != null )
 			{
-				output_listbox.Dispatcher.Invoke((Action)( ( ) => output_listbox.Items.Add(result) ));
+				output_listbox.Dispatcher.Invoke((Action)( ( ) =>
+					{
+						lock ( locker )
+						{
+							output_listbox.Items.Add(result);
+							output_listbox.ScrollIntoView(output_listbox.Items[output_listbox.Items.Count-1]);
+						}
+					}));
 				result = ProcessPool[0].StandardOutput.ReadLine();
 			}
 		}
@@ -93,21 +104,46 @@ namespace BuildHelper
 		{
 			for ( int i=0; i < config.Prjcfg.Count; i++ )
 			{
-				string rebuildInfo = ParseConfig(config.Prjcfg[i]);
-				ProcessStartInfo start = new ProcessStartInfo();
-				start.FileName = "C:/Program Files (x86)/Microsoft Visual Studio 12.0/Common7/IDE/devenv.com";
-				start.UseShellExecute = false;
-				start.RedirectStandardOutput = true;
-				start.Arguments = config.Prjcfg[i].ProjectPath + @" /REBUILD " + rebuildInfo;
-				try
+				List<string> rebuildInfo = config.Prjcfg[i].GetRebuildInfoList();
+				for (int j = 0; j < rebuildInfo.Count; j++ )
 				{
-					ProcessPool.Add(Process.Start(start));
-				}
-				catch(Exception ex)
-				{
-					MessageBox.Show("Failed to launch builds:" + ex.Message);
+					ProcessStartInfo start = new ProcessStartInfo();
+					start.FileName = "C:/Program Files (x86)/Microsoft Visual Studio 12.0/Common7/IDE/devenv.com";
+					start.UseShellExecute = false;
+					start.RedirectStandardOutput = true;
+					start.Arguments = config.Prjcfg[i].ProjectPath + @" /REBUILD " + rebuildInfo[j];
+					try
+					{
+						Process newprocess = Process.Start(start);
+						newprocess.EnableRaisingEvents = true;
+						newprocess.Exited += ProcExited;
+						ProcessPool.Add(newprocess);
+					}
+					catch ( Exception ex )
+					{
+						MessageBox.Show("Failed to launch builds:" + ex.Message);
+					}
 				}
 			}
+		}
+
+		private void ProcExited(object sender, EventArgs e)
+		{
+			lock(locker)
+				if ( ++num_procexited == ProcessPool.Count )
+				{
+					this.Dispatcher.Invoke(( ) =>
+					{
+						status_progressRing.IsActive = !status_progressRing.IsActive;
+						foreach ( Process proc in ProcessPool )
+							proc.Close();
+						ProcessPool.Clear();
+						num_procexited = 0;
+						output_listbox.Items.Add("ALL BUILDS FINISHED!");
+						Launch.Content = "Launch builds!";
+						bBuildsLaunched = false;
+					});
+				}
 		}
 
 		private void x64R_checkbox_CheckedChange( object sender, RoutedEventArgs e )
@@ -192,33 +228,24 @@ namespace BuildHelper
 				Projectpath_textbox.Background = Brushes.White;
 		}
 
-		private string ParseConfig(Project sol)
-		{
-			string ret = string.Empty;
-			if ( sol.x64D )
-				ret = @"Debug|x64";
-			if ( sol.x86D )
-				ret = @"Debug|x86";
-			if ( sol.x64R )
-				ret = @"Release|x64";
-			if ( sol.x86R )
-				ret = @"Release|x86";
-			return ret;
-		}
+		
 
-		private void FetchButton_OnClick( object sender, RoutedEventArgs e )
+		private async void FetchButton_OnClick( object sender, RoutedEventArgs e )
 		{
-			FetchCode();
-		}
-
-		private void FetchCode( )
-		{
+			Launch.IsEnabled = false;
 			string userName = tfs_username_textbox.Text;
 			string userPass = pw_passwordbox.Password;
 			string tfsPath = tfs_path_textbox.Text;
 			string tfsWorkSpace = tfs_workspace_textbox.Text;
 			string requestPath = requestpath_textbox.Text;
+			await FetchCode(userName, userPass, tfsPath, tfsWorkSpace, requestPath);
+			Launch.IsEnabled = true;
+		}
 
+		private async Task FetchCode(string userName, string userPass, string tfsPath, string tfsWorkSpace, string requestPath)
+		{
+			var controller = await this.ShowProgressAsync("Please wait", "Downloading...");
+			GetStatus getStat = null;
 			try
 			{
 				ICredentials myCred = new NetworkCredential(userName, userPass);
@@ -226,12 +253,29 @@ namespace BuildHelper
 				VersionControlServer vcs = tfs.GetService<VersionControlServer>();
 				Workspace myWorkspace = vcs.GetWorkspace(tfsWorkSpace, vcs.AuthorizedUser);
 				GetRequest request = new GetRequest(new ItemSpec(requestPath, RecursionType.Full), VersionSpec.Latest);
-				GetStatus getStat = myWorkspace.Get(request, GetOptions.None);
+				getStat = myWorkspace.Get(request, GetOptions.None);
 			}
-			catch(Exception ex)
+			catch ( Exception ex )
 			{
-				MessageBox.Show("TFS Connection failed: " + ex.Message);
+				MessageBox.Show("Fetching code failed: " + ex.Message);
 			}
+			await controller.CloseAsync();
+			if (getStat == null || getStat.NumFailures > 0 || getStat.NumWarnings > 0)
+			{
+				output_listbox.Dispatcher.Invoke((Action)( () =>
+				{ 
+					output_listbox.Items.Add("Errors while getting latest have occurred");
+				}));
+				return;
+			}
+
+			if ( getStat.NumOperations == 0 )
+			{
+				MessageBox.Show("All files are up to date");
+			}
+
+			
+			
 		}
 
 		private void FetchCheckBox_Click( object sender, RoutedEventArgs e )
@@ -249,7 +293,10 @@ namespace BuildHelper
 			config.SaveConfig();
 		}
 
+		private void OnListView_ItemsAdded(object sender, EventArgs e)
+		{
 			
+		}
 	}
 
 	public enum VCS { TFS, GIT }
@@ -283,6 +330,19 @@ namespace BuildHelper
 		public override string ToString( )
 		{
 			return ProjectName;
+		}
+		public List<string> GetRebuildInfoList( )
+		{
+			List<string> ret = new List<string>();
+			if ( x64D )
+				ret.Add(@"Debug|x64");
+			if ( x86D )
+				ret.Add(@"Debug|x86");
+			if ( x64R )
+				ret.Add(@"Release|x64");
+			if ( x86R )
+				ret.Add(@"Release|x86");
+			return ret;
 		}
 		public byte GetBitFieldConfig()
 		{
