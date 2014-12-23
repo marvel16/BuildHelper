@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Threading;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
@@ -39,7 +40,8 @@ namespace BuildHelper
 		private List<Process> ProcessPool = new List<Process>();
 		private int num_procexited = 0;
 		private object locker = new object();
-
+		DispatcherTimer timer = new DispatcherTimer();
+		DateTime startTime;
 		public MainWindow( )
 		{
 			InitializeComponent();
@@ -52,6 +54,14 @@ namespace BuildHelper
 			tfs_path_textbox.Text = config.Tfscfg.TfsPath;
 			tfs_workspace_textbox.Text = config.Tfscfg.TfsWorkspace;
 			requestpath_textbox.Text = config.Tfscfg.RequestPath;
+			timer.Interval = new TimeSpan(0, 0, 1);
+			timer.Tick += dispatcherTimer_Tick;
+		}
+
+		private void dispatcherTimer_Tick( object sender, EventArgs e )
+		{
+			// Updating the Label which displays the current second
+			timer_label.Content = (DateTime.Now - startTime).ToString();
 		}
 
 		private void LaunchButton_OnClick(object sender, EventArgs e)
@@ -64,6 +74,8 @@ namespace BuildHelper
 			status_progressRing.IsActive = !status_progressRing.IsActive;
 			if (bBuildsLaunched)
 			{
+				timer.Stop();
+				timer_label.Content = "";
 				foreach (Process proc in ProcessPool)
 					proc.Close();
 				ProcessPool.Clear();
@@ -73,14 +85,13 @@ namespace BuildHelper
 				bBuildsLaunched = false;
 				return;
 			}
-
+			startTime = DateTime.Now;
+			timer.Start();
 			StartBuilds(); //launch devenv process
 			output_listbox.Items.Add("BUILDS LAUNCHED!");
 			bBuildsLaunched = true;
 			Launch.Content = "Cancel builds";
 			Task.Run(() => WriteOutput());
-			
-			
 		}
 
 		private void WriteOutput()
@@ -142,6 +153,7 @@ namespace BuildHelper
 						output_listbox.Items.Add("ALL BUILDS FINISHED!");
 						Launch.Content = "Launch builds!";
 						bBuildsLaunched = false;
+						timer.Stop();
 					});
 				}
 		}
@@ -239,6 +251,7 @@ namespace BuildHelper
 			string tfsWorkSpace = tfs_workspace_textbox.Text;
 			string requestPath = requestpath_textbox.Text;
 			var controller = await this.ShowProgressAsync("Please wait", "Downloading...");
+			rememberTFScfg_click(sender, e);
 			await FetchCode(userName, userPass, tfsPath, tfsWorkSpace, requestPath);
 			Launch.IsEnabled = true;
 			await controller.CloseAsync();
