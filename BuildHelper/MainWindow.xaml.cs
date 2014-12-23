@@ -238,13 +238,16 @@ namespace BuildHelper
 			string tfsPath = tfs_path_textbox.Text;
 			string tfsWorkSpace = tfs_workspace_textbox.Text;
 			string requestPath = requestpath_textbox.Text;
+			var controller = await this.ShowProgressAsync("Please wait", "Downloading...");
 			await FetchCode(userName, userPass, tfsPath, tfsWorkSpace, requestPath);
 			Launch.IsEnabled = true;
+			await controller.CloseAsync();
+
 		}
 
 		private async Task FetchCode(string userName, string userPass, string tfsPath, string tfsWorkSpace, string requestPath)
 		{
-			var controller = await this.ShowProgressAsync("Please wait", "Downloading...");
+			
 			GetStatus getStat = null;
 			try
 			{
@@ -259,7 +262,6 @@ namespace BuildHelper
 			{
 				MessageBox.Show("Fetching code failed: " + ex.Message);
 			}
-			await controller.CloseAsync();
 			if (getStat == null || getStat.NumFailures > 0 || getStat.NumWarnings > 0)
 			{
 				output_listbox.Dispatcher.Invoke((Action)( () =>
