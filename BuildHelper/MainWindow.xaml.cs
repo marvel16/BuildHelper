@@ -37,11 +37,12 @@ namespace BuildHelper
 		private bool bBuildsLaunched = false;
 		private CfgMan config = new CfgMan();
 		private List<CheckBox> checkboxes = new List<CheckBox>();
-		private List<Process> ProcessPool = new List<Process>();
+		private Queue<Process> BuildQueue = new Queue<Process>();
 		private int num_procexited = 0;
 		private object locker = new object();
 		DispatcherTimer timer = new DispatcherTimer();
 		DateTime startTime;
+		DateTime projstarttime;
 		public MainWindow( )
 		{
 			InitializeComponent();
@@ -74,88 +75,98 @@ namespace BuildHelper
 			status_progressRing.IsActive = !status_progressRing.IsActive;
 			if (bBuildsLaunched)
 			{
-				timer.Stop();
-				timer_label.Content = "";
-				foreach (Process proc in ProcessPool)
-					proc.Close();
-				ProcessPool.Clear();
-				num_procexited = 0;
-				output_listbox.Items.Add("BUILDS CANCELLED!");
-				Launch.Content = "Launch builds!";
-				bBuildsLaunched = false;
+				StopBuild();
 				return;
 			}
 			startTime = DateTime.Now;
 			timer.Start();
-			StartBuilds(); //launch devenv process
+			CreateBuildQueue();
+			StartBuild();
 			output_listbox.Items.Add("BUILDS LAUNCHED!");
 			bBuildsLaunched = true;
 			Launch.Content = "Cancel builds";
-			Task.Run(() => WriteOutput());
+			
 		}
 
-		private void WriteOutput()
+		private void StartBuild()
 		{
-			string result = ProcessPool[0].StandardOutput.ReadLine();
+			try
+			{
+				Task.Run(() => BuildQueue.Peek().Start());
+				projstarttime = DateTime.Now;
+				Task.Run(() => WriteOutput(BuildQueue.Peek()));
+			}
+			catch ( Exception ex )
+			{
+				MessageBox.Show("Failed to launch build:" + ex.Message);
+			}
+		}
+
+		private void StopBuild()
+		{
+			if ( BuildQueue.Count > 0)
+				BuildQueue.Peek().Close();
+			BuildQueue.Clear();
+			timer.Stop();
+			timer_label.Content = "";
+			output_listbox.Items.Add("BUILDS CANCELLED!");
+			Launch.Content = "Launch builds!";
+			bBuildsLaunched = false;
+		}
+
+		private void WriteOutput(Process proc)
+		{
+			Thread.Sleep(100);
+			string result = proc.StandardOutput.ReadLine();
 			while ( result != null )
 			{
 				output_listbox.Dispatcher.Invoke((Action)( ( ) =>
 					{
-						lock ( locker )
-						{
-							output_listbox.Items.Add(result);
-							output_listbox.ScrollIntoView(output_listbox.Items[output_listbox.Items.Count-1]);
-						}
+						output_listbox.Items.Add(result);
+						output_listbox.ScrollIntoView(output_listbox.Items[output_listbox.Items.Count-1]);
 					}));
-				result = ProcessPool[0].StandardOutput.ReadLine();
+				result = proc.StandardOutput.ReadLine();
 			}
 		}
 
-		private void StartBuilds()
+		private void CreateBuildQueue()
 		{
-			for ( int i=0; i < config.Prjcfg.Count; i++ )
+			foreach ( var elem in ProjectListBox.Items )
 			{
-				List<string> rebuildInfo = config.Prjcfg[i].GetRebuildInfoList();
-				for (int j = 0; j < rebuildInfo.Count; j++ )
+				Project proj = elem as Project;
+				List<string> rebuildInfo = proj.GetRebuildInfoList();
+				foreach(var arg in rebuildInfo)
 				{
-					ProcessStartInfo start = new ProcessStartInfo();
-					start.FileName = "C:/Program Files (x86)/Microsoft Visual Studio 12.0/Common7/IDE/devenv.com";
-					start.UseShellExecute = false;
-					start.RedirectStandardOutput = true;
-					start.Arguments = config.Prjcfg[i].ProjectPath + @" /REBUILD " + rebuildInfo[j];
-					try
-					{
-						Process newprocess = Process.Start(start);
-						newprocess.EnableRaisingEvents = true;
-						newprocess.Exited += ProcExited;
-						ProcessPool.Add(newprocess);
-					}
-					catch ( Exception ex )
-					{
-						MessageBox.Show("Failed to launch builds:" + ex.Message);
-					}
+					Process process = new Process();
+					process.StartInfo.FileName = "C:/Program Files (x86)/Microsoft Visual Studio 12.0/Common7/IDE/devenv.com";
+					process.StartInfo.UseShellExecute = false;
+					process.StartInfo.RedirectStandardOutput = true;
+					process.StartInfo.Arguments = proj.ProjectPath + @" /REBUILD " + arg;
+					process.EnableRaisingEvents = true;
+					process.Exited += ProcExited;
+					BuildQueue.Enqueue(process);
 				}
 			}
 		}
 
 		private void ProcExited(object sender, EventArgs e)
 		{
-			lock(locker)
-				if ( ++num_procexited == ProcessPool.Count )
+			this.Dispatcher.Invoke(( ) =>
 				{
-					this.Dispatcher.Invoke(( ) =>
+					//status_progressRing.IsActive = !status_progressRing.IsActive;
+					string projName = ( sender as Process ).StartInfo.Arguments;
+					output_listbox.Items.Add(projName + ": " + (projstarttime - DateTime.Now).ToString());
+					BuildQueue.Dequeue().Close();
+					if ( BuildQueue.Count == 0 )
 					{
-						status_progressRing.IsActive = !status_progressRing.IsActive;
-						foreach ( Process proc in ProcessPool )
-							proc.Close();
-						ProcessPool.Clear();
-						num_procexited = 0;
-						output_listbox.Items.Add("ALL BUILDS FINISHED!");
-						Launch.Content = "Launch builds!";
-						bBuildsLaunched = false;
 						timer.Stop();
-					});
-				}
+						Launch.Content = "Launch builds!";
+						status_progressRing.IsActive = !status_progressRing.IsActive;
+						bBuildsLaunched = false;
+					}
+					else
+						StartBuild();
+				});
 		}
 
 		private void x64R_checkbox_CheckedChange( object sender, RoutedEventArgs e )
@@ -194,10 +205,10 @@ namespace BuildHelper
 		{
 			if ( ProjectListBox.SelectedIndex < 0 )
 				return;
-			x64D_checkbox1.IsChecked = config.Prjcfg[ProjectListBox.SelectedIndex].x64D;
-			x64R_checkbox1.IsChecked = config.Prjcfg[ProjectListBox.SelectedIndex].x64R;
-			x86R_checkbox1.IsChecked = config.Prjcfg[ProjectListBox.SelectedIndex].x86R;
-			x86D_checkbox1.IsChecked = config.Prjcfg[ProjectListBox.SelectedIndex].x86D;
+			x64D_checkbox1.IsChecked = ( ProjectListBox.Items[ProjectListBox.SelectedIndex] as Project ).x64D;
+			x64R_checkbox1.IsChecked = ( ProjectListBox.Items[ProjectListBox.SelectedIndex] as Project ).x64R;
+			x86R_checkbox1.IsChecked = ( ProjectListBox.Items[ProjectListBox.SelectedIndex] as Project ).x86R;
+			x86D_checkbox1.IsChecked = ( ProjectListBox.Items[ProjectListBox.SelectedIndex] as Project ).x86D;
 		}
 
 		private void createProject_button_Click( object sender, RoutedEventArgs e )
@@ -250,17 +261,17 @@ namespace BuildHelper
 			string tfsPath = tfs_path_textbox.Text;
 			string tfsWorkSpace = tfs_workspace_textbox.Text;
 			string requestPath = requestpath_textbox.Text;
+			
 			var controller = await this.ShowProgressAsync("Please wait", "Downloading...");
-			rememberTFScfg_click(sender, e);
-			await FetchCode(userName, userPass, tfsPath, tfsWorkSpace, requestPath);
+			await Task.Run( ()=> FetchCode(userName, userPass, tfsPath, tfsWorkSpace, requestPath));
 			Launch.IsEnabled = true;
 			await controller.CloseAsync();
 
 		}
 
-		private async Task FetchCode(string userName, string userPass, string tfsPath, string tfsWorkSpace, string requestPath)
+		private void FetchCode(string userName, string userPass, string tfsPath, string tfsWorkSpace, string requestPath)
 		{
-			
+			Thread.Sleep(5000);
 			GetStatus getStat = null;
 			try
 			{
@@ -288,9 +299,11 @@ namespace BuildHelper
 			{
 				MessageBox.Show("All files are up to date");
 			}
-
-			
-			
+			else
+				output_listbox.Dispatcher.Invoke((Action)( ( ) =>
+				{
+					output_listbox.Items.Add("Successfully downloaded code");
+				} ));
 		}
 
 		private void FetchCheckBox_Click( object sender, RoutedEventArgs e )
@@ -305,12 +318,49 @@ namespace BuildHelper
 			config.Tfscfg.TfsPath = tfs_path_textbox.Text;
 			config.Tfscfg.TfsWorkspace = tfs_workspace_textbox.Text;
 			config.Tfscfg.RequestPath = requestpath_textbox.Text;
+			config.Tfscfg.PassWord = pw_passwordbox.Password;
 			config.SaveConfig();
 		}
 
 		private void OnListView_ItemsAdded(object sender, EventArgs e)
 		{
 			
+		}
+
+		private void On_moveup( object sender, RoutedEventArgs e )
+		{
+			MoveItem(-1);
+		}
+
+		private void On_movedown( object sender, RoutedEventArgs e )
+		{
+			MoveItem(1);
+		}
+
+		public void MoveItem( int direction )
+		{
+			// Checking selected item
+			if ( ProjectListBox.SelectedItem == null || ProjectListBox.SelectedIndex < 0 )
+				return; // No selected item - nothing to do
+
+			// Calculate new index using move direction
+			int newIndex = ProjectListBox.SelectedIndex + direction;
+
+			// Checking bounds of the range
+			if ( newIndex < 0 || newIndex >= ProjectListBox.Items.Count )
+				return; // Index out of range - nothing to do
+
+			object selected = ProjectListBox.SelectedItem;
+
+			// Removing removable element
+			ProjectListBox.Items.Remove(selected);
+			// Insert it in new position
+			ProjectListBox.Items.Insert(newIndex, selected);
+			// Restore selection
+			ProjectListBox.SelectedIndex = newIndex;
+			config.Prjcfg.Clear();
+			foreach ( var item in ProjectListBox.Items )
+				config.Prjcfg.Add(item as Project);
 		}
 	}
 
@@ -323,12 +373,14 @@ namespace BuildHelper
 		public string TfsPath { get; set; }
 		public string TfsWorkspace { get; set; }
 		public string RequestPath { get; set; }
+		public string PassWord { get; set; }
 		public TFSAccount()
 		{
 			UserName = String.Empty;
 			TfsPath = String.Empty;
 			TfsWorkspace = String.Empty;
 			RequestPath = String.Empty;
+			PassWord = String.Empty;
 		}
 	}
 
