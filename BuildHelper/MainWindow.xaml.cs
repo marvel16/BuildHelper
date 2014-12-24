@@ -38,7 +38,6 @@ namespace BuildHelper
 		private CfgMan config = new CfgMan();
 		private List<CheckBox> checkboxes = new List<CheckBox>();
 		private Queue<Process> BuildQueue = new Queue<Process>();
-		private int num_procexited = 0;
 		private object locker = new object();
 		DispatcherTimer timer = new DispatcherTimer();
 		DateTime startTime;
@@ -73,23 +72,24 @@ namespace BuildHelper
 				return;
 			}
 			status_progressRing.IsActive = !status_progressRing.IsActive;
+			
 			if (bBuildsLaunched)
 			{
 				StopBuild();
 				return;
 			}
 			startTime = DateTime.Now;
+			Launch.Content = "Cancel builds";
 			timer.Start();
 			CreateBuildQueue();
 			StartBuild();
-			output_listbox.Items.Add("BUILDS LAUNCHED!");
-			bBuildsLaunched = true;
-			Launch.Content = "Cancel builds";
-			
 		}
 
 		private void StartBuild()
 		{
+			bBuildsLaunched = true;
+			output_listbox.Items.Add("BUILDS LAUNCHED!");
+			
 			try
 			{
 				Task.Run(() => BuildQueue.Peek().Start());
