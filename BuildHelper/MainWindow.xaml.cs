@@ -209,6 +209,8 @@ namespace BuildHelper
 			x64R_checkbox1.IsChecked = ( ProjectListBox.Items[ProjectListBox.SelectedIndex] as Project ).x64R;
 			x86R_checkbox1.IsChecked = ( ProjectListBox.Items[ProjectListBox.SelectedIndex] as Project ).x86R;
 			x86D_checkbox1.IsChecked = ( ProjectListBox.Items[ProjectListBox.SelectedIndex] as Project ).x86D;
+			Projectpath_textbox.Text = ( ProjectListBox.Items[ProjectListBox.SelectedIndex] as Project ).ProjectPath;
+			Projectname_textbox.Text = ( ProjectListBox.Items[ProjectListBox.SelectedIndex] as Project ).ProjectPath;
 		}
 
 		private void createProject_button_Click( object sender, RoutedEventArgs e )
@@ -243,13 +245,6 @@ namespace BuildHelper
 			config.SaveConfig();
 		}
 
-		private void Projectpath_textbox_TextChanged( object sender, TextChangedEventArgs e )
-		{
-			if ( !File.Exists(Projectpath_textbox.Text) )
-				Projectpath_textbox.Background = Brushes.Red;
-			else
-				Projectpath_textbox.Background = Brushes.White;
-		}
 
 		
 
@@ -361,6 +356,28 @@ namespace BuildHelper
 			config.Prjcfg.Clear();
 			foreach ( var item in ProjectListBox.Items )
 				config.Prjcfg.Add(item as Project);
+		}
+
+		private void filedialog_button_Click( object sender, RoutedEventArgs e )
+		{
+			// Create OpenFileDialog 
+			Microsoft.Win32.OpenFileDialog dlg = new Microsoft.Win32.OpenFileDialog();
+
+
+
+			// Set filter for file extension and default file extension 
+			dlg.DefaultExt = ".sln";
+			dlg.Filter = "Solution Files |*.sln";
+
+
+			// Display OpenFileDialog by calling ShowDialog method 
+			Nullable<bool> result = dlg.ShowDialog();
+
+			if ( result == true )
+			{
+				string filename = dlg.FileName;
+				Projectpath_textbox.Text = filename;
+			}
 		}
 	}
 

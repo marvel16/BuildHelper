@@ -40,15 +40,20 @@
                     <ListBox x:Name="ProjectListBox" Margin="10,42,273,152" SelectionChanged="ProjectListBox_SelectionChanged"/>
                     <Button x:Name="createProject_button" Content="Add Project" Margin="0,0,231,14"
                     	Style="{StaticResource AccentedSquareButtonStyle}" Height="29" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="116" Click="createProject_button_Click"/>
-                    <TextBox x:Name="Projectname_textbox" Height="26" Margin="10,0,27,105" TextWrapping="Wrap" Text="" VerticalAlignment="Bottom" 
+                    <TextBox x:Name="Projectname_textbox" Height="26" Margin="10,0,96,105" TextWrapping="Wrap" Text="" VerticalAlignment="Bottom" 
                     	Controls:TextBoxHelper.ClearTextButton="True"
                     	Controls:TextBoxHelper.Watermark="Enter solution ID (e.g. DMS)"/>
-                    <TextBox x:Name="Projectpath_textbox" Height="26" Margin="10,0,27,64" TextWrapping="Wrap" Text="" VerticalAlignment="Bottom" 
-                    	Controls:TextBoxHelper.ClearTextButton="True"
-                    	Controls:TextBoxHelper.Watermark="Enter solution full path" TextChanged="Projectpath_textbox_TextChanged" Background="White"/>
-                    <Button x:Name="moveup_button" Content="UP" HorizontalAlignment="Right" Height="18" Margin="0,0,218,262" VerticalAlignment="Bottom" Width="50" Background="#FF39B6EC" RenderTransformOrigin="0.491,1.84" Click="On_moveup"
+                    <TextBox x:Name="Projectpath_textbox" Height="26" Margin="10,0,96,64" TextWrapping="Wrap" Text="" VerticalAlignment="Bottom" 
+                    	Controls:TextBoxHelper.ClearTextButton="False" IsReadOnly="True"
+                    	Controls:TextBoxHelper.Watermark="Select solution file..." Background="White"/>
+                    <Button x:Name="moveup_button" Content="UP" HorizontalAlignment="Right" Height="18" Margin="0,0,218,262" VerticalAlignment="Bottom" Width="50" Background="#FF39B6EC"
+                            RenderTransformOrigin="0.491,1.84" Click="On_moveup"
                             />
-                    <Button x:Name="movedown_button" Content="DOWN" Margin="0,0,218,218" Background="#FF39B6EC" Click="On_movedown" HorizontalAlignment="Right" Width="50" Height="26" VerticalAlignment="Bottom"/>
+                    <Button x:Name="movedown_button" Content="DOWN" Margin="0,0,218,218" Background="#FF39B6EC" Click="On_movedown" 
+                            HorizontalAlignment="Right" Width="50" Height="26" VerticalAlignment="Bottom"
+                            />
+                    <Button x:Name="filedialog_button" Content="" HorizontalAlignment="Right" Margin="0,299,40,64" Width="51"
+                            Style="{StaticResource AccentedSquareButtonStyle}" Click="filedialog_button_Click"/>
                 </Grid>
             </TabItem>
             <TabItem Header="TFS">
