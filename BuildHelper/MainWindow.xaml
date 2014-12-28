@@ -52,8 +52,10 @@
                     <Button x:Name="movedown_button" Content="DOWN" Margin="0,0,218,218" Background="#FF39B6EC" Click="On_movedown" 
                             HorizontalAlignment="Right" Width="50" Height="26" VerticalAlignment="Bottom"
                             />
-                    <Button x:Name="filedialog_button" Content="" HorizontalAlignment="Right" Margin="0,299,40,64" Width="51"
-                            Style="{StaticResource AccentedSquareButtonStyle}" Click="filedialog_button_Click"/>
+                    <Button x:Name="filedialog_button"  HorizontalAlignment="Right" Margin="0,289,46,54" Width="45"
+                             Click="filedialog_button_Click" BorderBrush="{x:Null}" Background="{x:Null}" Focusable="False" >
+                        <Image Source="Resources/solutionIcon.png" Height="36" Width="35" Margin="0,0,0,0" UseLayoutRounding="True" />
+                    </Button>
                 </Grid>
             </TabItem>
             <TabItem Header="TFS">
@@ -100,4 +102,6 @@
         </Controls:MetroAnimatedSingleRowTabControl>
         <Label x:Name="timer_label" Content="" Margin="0,0,10,42" Foreground="White" Height="25" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="126"/>
     </Grid>
+
 </Controls:MetroWindow>
+

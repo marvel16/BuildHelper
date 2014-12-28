@@ -85,6 +85,27 @@ namespace BuildHelper
 			StartBuild();
 		}
 
+		private void CreateBuildQueue( )
+		{
+			foreach ( var elem in ProjectListBox.Items )
+			{
+				Project proj = elem as Project;
+				List<string> rebuildInfo = proj.GetRebuildInfoList();
+				foreach ( var arg in rebuildInfo )
+				{
+					Process process = new Process();
+					process.StartInfo.FileName = "C:/Program Files (x86)/Microsoft Visual Studio 12.0/Common7/IDE/devenv.com";
+					process.StartInfo.UseShellExecute = false;
+					process.StartInfo.RedirectStandardOutput = true;
+					process.StartInfo.Arguments = proj.ProjectPath + @" /REBUILD " + arg;
+					process.StartInfo.CreateNoWindow = true;
+					process.EnableRaisingEvents = true;
+					process.Exited += ProcExited;
+					BuildQueue.Enqueue(process);
+				}
+			}
+		}
+
 		private void StartBuild()
 		{
 			bBuildsLaunched = true;
@@ -92,9 +113,9 @@ namespace BuildHelper
 			
 			try
 			{
-				Task.Run(() => BuildQueue.Peek().Start());
+				BuildQueue.Peek().Start();
 				projstarttime = DateTime.Now;
-				Task.Run(() => WriteOutput(BuildQueue.Peek()));
+				Task.Run(() => ReadOutput(BuildQueue.Peek()));
 			}
 			catch ( Exception ex )
 			{
@@ -104,59 +125,47 @@ namespace BuildHelper
 
 		private void StopBuild()
 		{
-			if ( BuildQueue.Count > 0)
-				BuildQueue.Peek().Close();
+			bBuildsLaunched = false;
+			if ( BuildQueue.Count > 0 )
+				BuildQueue.Peek().CloseMainWindow();
 			BuildQueue.Clear();
 			timer.Stop();
 			timer_label.Content = "";
 			output_listbox.Items.Add("BUILDS CANCELLED!");
 			Launch.Content = "Launch builds!";
-			bBuildsLaunched = false;
+			
 		}
 
-		private void WriteOutput(Process proc)
+		private void ReadOutput(Process proc)
 		{
-			Thread.Sleep(100);
-			string result = proc.StandardOutput.ReadLine();
-			while ( result != null )
+			string result;
+			while ( (result = proc.StandardOutput.ReadLine()) != null)
 			{
-				output_listbox.Dispatcher.Invoke((Action)( ( ) =>
+				output_listbox.Dispatcher.Invoke(
+					delegate
 					{
 						output_listbox.Items.Add(result);
 						output_listbox.ScrollIntoView(output_listbox.Items[output_listbox.Items.Count-1]);
-					}));
-				result = proc.StandardOutput.ReadLine();
+					});
 			}
 		}
 
-		private void CreateBuildQueue()
-		{
-			foreach ( var elem in ProjectListBox.Items )
-			{
-				Project proj = elem as Project;
-				List<string> rebuildInfo = proj.GetRebuildInfoList();
-				foreach(var arg in rebuildInfo)
-				{
-					Process process = new Process();
-					process.StartInfo.FileName = "C:/Program Files (x86)/Microsoft Visual Studio 12.0/Common7/IDE/devenv.com";
-					process.StartInfo.UseShellExecute = false;
-					process.StartInfo.RedirectStandardOutput = true;
-					process.StartInfo.Arguments = proj.ProjectPath + @" /REBUILD " + arg;
-					process.EnableRaisingEvents = true;
-					process.Exited += ProcExited;
-					BuildQueue.Enqueue(process);
-				}
-			}
-		}
+		//private void OnOutputDataReceived( object sender, DataReceivedEventArgs e )
+		//{
+		//	if ( !String.IsNullOrEmpty(e.Data) )
+		//		outputBuffer.Append(Environment.NewLine + e.Data);
+		//}
+
 
 		private void ProcExited(object sender, EventArgs e)
 		{
+			if ( bBuildsLaunched )
 			this.Dispatcher.Invoke(( ) =>
 				{
 					//status_progressRing.IsActive = !status_progressRing.IsActive;
 					string projName = ( sender as Process ).StartInfo.Arguments;
 					output_listbox.Items.Add(projName + ": " + (projstarttime - DateTime.Now).ToString());
-					BuildQueue.Dequeue().Close();
+					BuildQueue.Dequeue();
 					if ( BuildQueue.Count == 0 )
 					{
 						timer.Stop();
@@ -209,8 +218,6 @@ namespace BuildHelper
 			x64R_checkbox1.IsChecked = ( ProjectListBox.Items[ProjectListBox.SelectedIndex] as Project ).x64R;
 			x86R_checkbox1.IsChecked = ( ProjectListBox.Items[ProjectListBox.SelectedIndex] as Project ).x86R;
 			x86D_checkbox1.IsChecked = ( ProjectListBox.Items[ProjectListBox.SelectedIndex] as Project ).x86D;
-			Projectpath_textbox.Text = ( ProjectListBox.Items[ProjectListBox.SelectedIndex] as Project ).ProjectPath;
-			Projectname_textbox.Text = ( ProjectListBox.Items[ProjectListBox.SelectedIndex] as Project ).ProjectPath;
 		}
 
 		private void createProject_button_Click( object sender, RoutedEventArgs e )
@@ -232,6 +239,8 @@ namespace BuildHelper
 			ProjectListBox.Items.Add(proj);
 			config.Prjcfg.Add(proj);
 			config.SaveConfig();
+			Projectname_textbox.Clear();
+			Projectpath_textbox.Clear();
 		}
 
 		private void removeproject_button_Click( object sender, RoutedEventArgs e )
@@ -360,24 +369,14 @@ namespace BuildHelper
 
 		private void filedialog_button_Click( object sender, RoutedEventArgs e )
 		{
-			// Create OpenFileDialog 
 			Microsoft.Win32.OpenFileDialog dlg = new Microsoft.Win32.OpenFileDialog();
-
-
-
 			// Set filter for file extension and default file extension 
 			dlg.DefaultExt = ".sln";
 			dlg.Filter = "Solution Files |*.sln";
-
-
-			// Display OpenFileDialog by calling ShowDialog method 
+			
 			Nullable<bool> result = dlg.ShowDialog();
-
 			if ( result == true )
-			{
-				string filename = dlg.FileName;
-				Projectpath_textbox.Text = filename;
-			}
+				Projectpath_textbox.Text = dlg.FileName;
 		}
 	}
 
