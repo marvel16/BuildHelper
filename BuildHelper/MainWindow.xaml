@@ -5,7 +5,7 @@
         xmlns:Controls="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
         ResizeMode="CanResizeWithGrip"
         EnableDWMDropShadow="True"           
-        Title="Build Helper" Height="381" Width="656" MinHeight="500" MinWidth="700" WindowStartupLocation="CenterScreen" Background="#FF323232" WindowStyle="ThreeDBorderWindow">
+        Title="Build Helper v1.0.0" Height="381" Width="656" MinHeight="500" MinWidth="700" WindowStartupLocation="CenterScreen" Background="#FF323232" WindowStyle="ThreeDBorderWindow">
     <Controls:MetroWindow.Resources>
         <Color x:Key="Color1">#19FFFFFF</Color>
     </Controls:MetroWindow.Resources>
@@ -36,7 +36,7 @@
                     </GroupBox>
                     <Button x:Name="removeproject_button" Content="Remove project" Margin="0,0,402,14"
                     	Style="{StaticResource AccentedSquareButtonStyle}" Height="29" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="106" Click="removeproject_button_Click"/>
-                    <Label x:Name="choosesol_label" Content="Choose Solution" Foreground="White"  HorizontalAlignment="Left" Height="27" Margin="10,10,0,0" VerticalAlignment="Top" Width="191" FontSize="14" Background="{x:Null}" FontFamily="Times New Roman"/>
+                    <Label x:Name="choosesol_label" Content="Choose Solution:" Foreground="White"  HorizontalAlignment="Left" Height="27" Margin="10,10,0,0" VerticalAlignment="Top" Width="191" Background="{x:Null}" FontFamily="Segoe UI, Lucida Sans Unicode, Verdana"/>
                     <ListBox x:Name="ProjectListBox" Margin="10,42,273,152" SelectionChanged="ProjectListBox_SelectionChanged"/>
                     <Button x:Name="createProject_button" Content="Add Project" Margin="0,0,231,14"
                     	Style="{StaticResource AccentedSquareButtonStyle}" Height="29" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="116" Click="createProject_button_Click"/>
@@ -44,7 +44,7 @@
                     	Controls:TextBoxHelper.ClearTextButton="True"
                     	Controls:TextBoxHelper.Watermark="Enter solution ID (e.g. DMS)"/>
                     <TextBox x:Name="Projectpath_textbox" Height="26" Margin="10,0,96,64" TextWrapping="Wrap" Text="" VerticalAlignment="Bottom" 
-                    	Controls:TextBoxHelper.ClearTextButton="False" IsReadOnly="True"
+                    	Controls:TextBoxHelper.ClearTextButton="True" IsReadOnly="True"
                     	Controls:TextBoxHelper.Watermark="Select solution file..." Background="White"/>
                     <Button x:Name="moveup_button" Content="UP" HorizontalAlignment="Right" Height="18" Margin="0,0,218,262" VerticalAlignment="Bottom" Width="50" Background="#FF39B6EC"
                             RenderTransformOrigin="0.491,1.84" Click="On_moveup"
@@ -89,6 +89,12 @@
                     </GroupBox>
                 </Grid>
             </TabItem>
+            <TabItem Header="Schedule">
+                <Grid x:Name="schedule">
+                    <wpfTool:TimePicker x:Name="m_timepicker" Margin="10,36,335,327" Background="White"></wpfTool:TimePicker>
+                    <CheckBox x:Name="schedule_cbx" Content="Run daily" HorizontalAlignment="Left" Margin="224,36,0,0" VerticalAlignment="Top" Height="27" Width="109" Foreground="White" IsChecked="True"/>
+                </Grid>
+            </TabItem>
             <TabItem Header="Output">
                 <Grid Background="#FF323232">
                     <ListBox x:Name="output_listbox" Margin="0,0,10,10" Background="{x:Null}" BorderBrush="#FF0D82A4" BorderThickness="2">
@@ -99,6 +105,7 @@
                 </Grid>
             </TabItem>
             <Grid Margin="10,10,10,8"/>
+            
         </Controls:MetroAnimatedSingleRowTabControl>
         <Label x:Name="timer_label" Content="" Margin="0,0,10,42" Foreground="White" Height="25" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="126"/>
     </Grid>

@@ -26,6 +26,8 @@ using System.ComponentModel;
 using Microsoft.TeamFoundation;
 using Microsoft.TeamFoundation.Client;
 using Microsoft.TeamFoundation.VersionControl.Client;
+using System.Management;
+using Xceed.Wpf.Toolkit;
 
 namespace BuildHelper
 {
@@ -40,6 +42,8 @@ namespace BuildHelper
 		private Queue<Process> BuildQueue = new Queue<Process>();
 		private object locker = new object();
 		DispatcherTimer timer = new DispatcherTimer();
+		DispatcherTimer ScheduleTimer = new DispatcherTimer();
+		
 		DateTime startTime;
 		DateTime projstarttime;
 		public MainWindow( )
@@ -53,9 +57,12 @@ namespace BuildHelper
 			tfs_username_textbox.Text = config.Tfscfg.UserName;
 			tfs_path_textbox.Text = config.Tfscfg.TfsPath;
 			tfs_workspace_textbox.Text = config.Tfscfg.TfsWorkspace;
+			pw_passwordbox.Password = config.Tfscfg.PassWord;
 			requestpath_textbox.Text = config.Tfscfg.RequestPath;
 			timer.Interval = new TimeSpan(0, 0, 1);
 			timer.Tick += dispatcherTimer_Tick;
+
+
 		}
 
 		private void dispatcherTimer_Tick( object sender, EventArgs e )
@@ -68,7 +75,7 @@ namespace BuildHelper
 		{
 			if(config.Prjcfg.Count == 0)
 			{
-				MessageBox.Show("Config is empty");
+				System.Windows.MessageBox.Show("Config is empty");
 				return;
 			}
 			status_progressRing.IsActive = !status_progressRing.IsActive;
@@ -81,6 +88,7 @@ namespace BuildHelper
 			startTime = DateTime.Now;
 			Launch.Content = "Cancel builds";
 			timer.Start();
+			RunDaily();
 			CreateBuildQueue();
 			StartBuild();
 		}
@@ -109,6 +117,7 @@ namespace BuildHelper
 		private void StartBuild()
 		{
 			bBuildsLaunched = true;
+			output_listbox.Items.Clear();
 			output_listbox.Items.Add("BUILDS LAUNCHED!");
 			
 			try
@@ -119,7 +128,7 @@ namespace BuildHelper
 			}
 			catch ( Exception ex )
 			{
-				MessageBox.Show("Failed to launch build:" + ex.Message);
+				System.Windows.MessageBox.Show("Failed to launch build:" + ex.Message);
 			}
 		}
 
@@ -127,13 +136,34 @@ namespace BuildHelper
 		{
 			bBuildsLaunched = false;
 			if ( BuildQueue.Count > 0 )
-				BuildQueue.Peek().CloseMainWindow();
+				KillProcessAndChildren(BuildQueue.Peek().Id);
 			BuildQueue.Clear();
 			timer.Stop();
+			ScheduleTimer.Stop();
 			timer_label.Content = "";
 			output_listbox.Items.Add("BUILDS CANCELLED!");
 			Launch.Content = "Launch builds!";
 			
+		}
+
+		private static void KillProcessAndChildren( int pid )
+		{
+			ManagementObjectSearcher searcher = new ManagementObjectSearcher
+			  ("Select * From Win32_Process Where ParentProcessID=" + pid);
+			ManagementObjectCollection moc = searcher.Get();
+			foreach ( ManagementObject mo in moc )
+			{
+				KillProcessAndChildren(Convert.ToInt32(mo["ProcessID"]));
+			}
+			try
+			{
+				Process proc = Process.GetProcessById(pid);
+				proc.Kill();
+			}
+			catch ( ArgumentException )
+			{
+				// Process already exited.
+			}
 		}
 
 		private void ReadOutput(Process proc)
@@ -149,13 +179,6 @@ namespace BuildHelper
 					});
 			}
 		}
-
-		//private void OnOutputDataReceived( object sender, DataReceivedEventArgs e )
-		//{
-		//	if ( !String.IsNullOrEmpty(e.Data) )
-		//		outputBuffer.Append(Environment.NewLine + e.Data);
-		//}
-
 
 		private void ProcExited(object sender, EventArgs e)
 		{
@@ -275,7 +298,6 @@ namespace BuildHelper
 
 		private void FetchCode(string userName, string userPass, string tfsPath, string tfsWorkSpace, string requestPath)
 		{
-			Thread.Sleep(5000);
 			GetStatus getStat = null;
 			try
 			{
@@ -288,7 +310,7 @@ namespace BuildHelper
 			}
 			catch ( Exception ex )
 			{
-				MessageBox.Show("Fetching code failed: " + ex.Message);
+				System.Windows.MessageBox.Show("Fetching code failed: " + ex.Message);
 			}
 			if (getStat == null || getStat.NumFailures > 0 || getStat.NumWarnings > 0)
 			{
@@ -301,7 +323,7 @@ namespace BuildHelper
 
 			if ( getStat.NumOperations == 0 )
 			{
-				MessageBox.Show("All files are up to date");
+				System.Windows.MessageBox.Show("All files are up to date");
 			}
 			else
 				output_listbox.Dispatcher.Invoke((Action)( ( ) =>
@@ -376,9 +398,44 @@ namespace BuildHelper
 			
 			Nullable<bool> result = dlg.ShowDialog();
 			if ( result == true )
-				Projectpath_textbox.Text = dlg.FileName;
+				Projectpath_textbox.Text = "\"" + dlg.FileName + "\"";
+		}
+
+		private void RunDaily()
+		{
+			if (m_timepicker.Value == null || schedule_cbx.IsChecked == false)
+				return;
+
+			ScheduleTimer.Interval = GetTriggerTimeSpan();
+			ScheduleTimer.Tick += Scheduletimer_Tick;
+			ScheduleTimer.Start();
+		}
+
+		private void Scheduletimer_Tick(object sender, EventArgs e)
+		{
+			if ( schedule_cbx.IsChecked == false )
+				return;
+			ScheduleTimer.Stop();
+			ScheduleTimer.Interval = GetTriggerTimeSpan();
+			ScheduleTimer.Start();
+			FetchButton_OnClick(sender, new RoutedEventArgs());
+			LaunchButton_OnClick(sender, new RoutedEventArgs());
+		}
+
+		TimeSpan GetTriggerTimeSpan()
+		{
+			var sched_time = (DateTime)m_timepicker.Value;
+			var now = DateTime.Now;
+
+			if ( now > sched_time )
+				sched_time = sched_time.AddDays(1.0);
+
+			var timespan = ( new TimeSpan(sched_time.Day, sched_time.Hour, sched_time.Minute, 0) - new TimeSpan(now.Day, now.Hour, now.Minute, 0) );
+			return timespan;
 		}
 	}
+
+	
 
 	public enum VCS { TFS, GIT }
 
@@ -473,7 +530,7 @@ namespace BuildHelper
 			}
 			catch(Exception ex)
 			{
-				MessageBox.Show("Error during saving config: " + ex.Message);
+				System.Windows.MessageBox.Show("Error during saving config: " + ex.Message);
 			}
 		}
 		private void Deserialize<T>(ref T cfg, string path)
@@ -491,7 +548,7 @@ namespace BuildHelper
 			}
 			catch ( Exception ex )
 			{
-				MessageBox.Show("Error during loading config: " + ex.Message);
+				System.Windows.MessageBox.Show("Error during loading config: " + ex.Message);
 			}
 		}
 	}
