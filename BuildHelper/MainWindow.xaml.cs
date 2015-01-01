@@ -105,7 +105,7 @@ namespace BuildHelper
 					process.StartInfo.FileName = "C:/Program Files (x86)/Microsoft Visual Studio 12.0/Common7/IDE/devenv.com";
 					process.StartInfo.UseShellExecute = false;
 					process.StartInfo.RedirectStandardOutput = true;
-					process.StartInfo.Arguments = proj.ProjectPath + @" /REBUILD " + arg;
+					process.StartInfo.Arguments = "\"" + proj.ProjectPath + "\"" + @" /REBUILD " + arg;
 					process.StartInfo.CreateNoWindow = true;
 					process.EnableRaisingEvents = true;
 					process.Exited += ProcExited;
@@ -117,7 +117,7 @@ namespace BuildHelper
 		private void StartBuild()
 		{
 			bBuildsLaunched = true;
-			output_listbox.Items.Clear();
+			
 			output_listbox.Items.Add("BUILDS LAUNCHED!");
 			
 			try
@@ -398,7 +398,7 @@ namespace BuildHelper
 			
 			Nullable<bool> result = dlg.ShowDialog();
 			if ( result == true )
-				Projectpath_textbox.Text = "\"" + dlg.FileName + "\"";
+				Projectpath_textbox.Text = dlg.FileName;
 		}
 
 		private void RunDaily()
