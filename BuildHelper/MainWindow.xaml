@@ -92,7 +92,7 @@
             <TabItem Header="Schedule">
                 <Grid x:Name="schedule">
                     <wpfTool:TimePicker x:Name="m_timepicker" Margin="10,36,335,327" Background="White"></wpfTool:TimePicker>
-                    <CheckBox x:Name="schedule_cbx" Content="Run daily" HorizontalAlignment="Left" Margin="224,36,0,0" VerticalAlignment="Top" Height="27" Width="109" Foreground="White" IsChecked="True"/>
+                    <CheckBox x:Name="schedule_cbx" Content="Run daily" HorizontalAlignment="Left" Margin="224,36,0,0" VerticalAlignment="Top" Height="27" Width="109" Foreground="White" Checked="OnDailyCheck" Unchecked="OnDailyCheck"/>
                 </Grid>
             </TabItem>
             <TabItem Header="Output">

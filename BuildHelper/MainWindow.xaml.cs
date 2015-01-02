@@ -61,7 +61,7 @@ namespace BuildHelper
 			requestpath_textbox.Text = config.Tfscfg.RequestPath;
 			timer.Interval = new TimeSpan(0, 0, 1);
 			timer.Tick += dispatcherTimer_Tick;
-
+			ScheduleTimer.Tick += Scheduletimer_Tick;
 
 		}
 
@@ -86,9 +86,9 @@ namespace BuildHelper
 				return;
 			}
 			startTime = DateTime.Now;
+			output_listbox.Items.Clear();
 			Launch.Content = "Cancel builds";
 			timer.Start();
-			RunDaily();
 			CreateBuildQueue();
 			StartBuild();
 		}
@@ -401,13 +401,14 @@ namespace BuildHelper
 				Projectpath_textbox.Text = dlg.FileName;
 		}
 
+		
+
 		private void RunDaily()
 		{
 			if (m_timepicker.Value == null || schedule_cbx.IsChecked == false)
 				return;
 
 			ScheduleTimer.Interval = GetTriggerTimeSpan();
-			ScheduleTimer.Tick += Scheduletimer_Tick;
 			ScheduleTimer.Start();
 		}
 
@@ -432,6 +433,14 @@ namespace BuildHelper
 
 			var timespan = ( new TimeSpan(sched_time.Day, sched_time.Hour, sched_time.Minute, 0) - new TimeSpan(now.Day, now.Hour, now.Minute, 0) );
 			return timespan;
+		}
+
+		private void OnDailyCheck( object sender, RoutedEventArgs e )
+		{
+			if(schedule_cbx.IsChecked == false)
+				ScheduleTimer.Stop();
+			else
+				RunDaily();
 		}
 	}
 
