@@ -46,6 +46,8 @@ namespace BuildHelper
 		
 		DateTime startTime;
 		DateTime projstarttime;
+		ProgressDialogController controller;
+		
 		public MainWindow( )
 		{
 			InitializeComponent();
@@ -188,6 +190,8 @@ namespace BuildHelper
 					//status_progressRing.IsActive = !status_progressRing.IsActive;
 					string projName = ( sender as Process ).StartInfo.Arguments;
 					output_listbox.Items.Add(projName + ": " + (projstarttime - DateTime.Now).ToString());
+					//make sure no children processes alive
+					KillProcessAndChildren(BuildQueue.Peek().Id);
 					BuildQueue.Dequeue();
 					if ( BuildQueue.Count == 0 )
 					{
@@ -289,22 +293,37 @@ namespace BuildHelper
 			string tfsWorkSpace = tfs_workspace_textbox.Text;
 			string requestPath = requestpath_textbox.Text;
 			
-			var controller = await this.ShowProgressAsync("Please wait", "Downloading...");
-			await Task.Run( ()=> FetchCode(userName, userPass, tfsPath, tfsWorkSpace, requestPath));
+			controller = await this.ShowProgressAsync("Please wait", "Downloading...", true);
+			controller.SetCancelable(false);
+			await Task.Run(( ) => FetchCode(userName, userPass, tfsPath, tfsWorkSpace, requestPath));
+			Thread.Sleep(5000);
 			Launch.IsEnabled = true;
 			await controller.CloseAsync();
 
 		}
 
-		private void FetchCode(string userName, string userPass, string tfsPath, string tfsWorkSpace, string requestPath)
+		private void OnGettingEvent(object sender, GettingEventArgs e)
+		{
+			GettingEventArgs status = (GettingEventArgs)e;
+			if(e.Total == 0)
+				return;
+			int current = (int)status.GetType().GetProperty("Current").GetValue(status, null);
+			int progress = 100*(current / e.Total);
+			controller.SetProgress(progress);
+			controller.SetMessage((progress*100).ToString());
+		}
+
+		private void FetchCode( string userName, string userPass, string tfsPath, string tfsWorkSpace, string requestPath )
 		{
 			GetStatus getStat = null;
 			try
 			{
 				ICredentials myCred = new NetworkCredential(userName, userPass);
-				TeamFoundationServer tfs = new TeamFoundationServer(tfsPath, myCred);
-				VersionControlServer vcs = tfs.GetService<VersionControlServer>();
+				TfsTeamProjectCollection collection = new TfsTeamProjectCollection(new Uri(tfsPath), myCred);
+				collection.EnsureAuthenticated();
+				VersionControlServer vcs = collection.GetService<VersionControlServer>();
 				Workspace myWorkspace = vcs.GetWorkspace(tfsWorkSpace, vcs.AuthorizedUser);
+				vcs.Getting += OnGettingEvent;
 				GetRequest request = new GetRequest(new ItemSpec(requestPath, RecursionType.Full), VersionSpec.Latest);
 				getStat = myWorkspace.Get(request, GetOptions.None);
 			}
@@ -323,7 +342,10 @@ namespace BuildHelper
 
 			if ( getStat.NumOperations == 0 )
 			{
-				System.Windows.MessageBox.Show("All files are up to date");
+				output_listbox.Dispatcher.Invoke((Action)( ( ) =>
+				{
+					output_listbox.Items.Add("All files are up to date");
+				} ));
 			}
 			else
 				output_listbox.Dispatcher.Invoke((Action)( ( ) =>
@@ -334,8 +356,7 @@ namespace BuildHelper
 
 		private void FetchCheckBox_Click( object sender, RoutedEventArgs e )
 		{
-			if ( fetchcode_button != null)
-				fetchcode_button.IsEnabled = (bool)FetchOnLaunch_checkbox.IsChecked;
+			
 		}
 
 		private void rememberTFScfg_click( object sender, RoutedEventArgs e )
@@ -419,7 +440,8 @@ namespace BuildHelper
 			ScheduleTimer.Stop();
 			ScheduleTimer.Interval = GetTriggerTimeSpan();
 			ScheduleTimer.Start();
-			FetchButton_OnClick(sender, new RoutedEventArgs());
+			if ( FetchOnLaunch_checkbox.IsChecked == true)
+				FetchButton_OnClick(sender, new RoutedEventArgs());
 			LaunchButton_OnClick(sender, new RoutedEventArgs());
 		}
 
@@ -485,14 +507,23 @@ namespace BuildHelper
 			List<string> ret = new List<string>();
 			if ( x64D )
 				ret.Add(@"Debug|x64");
-			if ( x86D )
-				ret.Add(@"Debug|x86");
 			if ( x64R )
 				ret.Add(@"Release|x64");
+			if ( x86D )
+				ret.Add("Debug|" + ResolveProjectType()); // C++ is win32, C# is x86
 			if ( x86R )
-				ret.Add(@"Release|x86");
+				ret.Add("Release|" + ResolveProjectType());
 			return ret;
 		}
+
+		private string ResolveProjectType()
+		{
+			if (File.ReadLines(ProjectPath).Any(line => line.Contains("csproj")))
+				return "x86";
+			else
+				return "Win32";
+		}
+
 		public byte GetBitFieldConfig()
 		{
 			byte field = 0;

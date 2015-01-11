@@ -21,12 +21,12 @@
                 Margin="0,0,10,10" Height="27" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="126"/>
         <Controls:ProgressRing x:Name="status_progressRing" Foreground="{DynamicResource AccentColorBrush}" IsActive="False" Margin="0,0,10,73" Height="120" Width="126" HorizontalAlignment="Right" VerticalAlignment="Bottom"/>
         <Controls:MetroAnimatedSingleRowTabControl x:Name="maintabcontrol" Margin="10,10,152,10">
-            <TabItem Header="Build Cfg">
+            <TabItem Header="Builds">
                 <Grid Background="#FF323232" Margin="0,4,-17,-4">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition/>
                     </Grid.ColumnDefinitions>
-                    <GroupBox x:Name="BuildOptions_Groupbox_Copy" Header="Build options" HorizontalAlignment="Right" Height="182" Margin="0,42,27,0" VerticalAlignment="Top" Width="135">
+                    <GroupBox x:Name="BuildOptions_Groupbox_Copy" Header="Build config" HorizontalAlignment="Right" Height="182" Margin="0,42,27,0" VerticalAlignment="Top" Width="135">
                         <Grid x:Name="grpboxGrid1" Margin="-3,2,-2,2">
                             <CheckBox x:Name="x64D_checkbox1" Content="Debug x64" HorizontalAlignment="Center" Height="25" Margin="10,40,0,0" VerticalAlignment="Top" Width="100" Foreground="White" Checked="x64D_checkbox_CheckedChange" Unchecked="x64D_checkbox_CheckedChange"/>
                             <CheckBox x:Name="x64R_checkbox1" Content="Release x64" HorizontalAlignment="Center" Height="25" Margin="10,10,0,0" VerticalAlignment="Top" Width="100" Foreground="#FFFDFDFD" Checked="x64R_checkbox_CheckedChange" Unchecked="x64R_checkbox_CheckedChange"/>
@@ -60,7 +60,7 @@
             </TabItem>
             <TabItem Header="TFS">
                 <Grid Background="#FF363636">
-                    <GroupBox x:Name="Source_Control" Header="Source Control - TFS" Margin="43,28,40,38">
+                    <GroupBox x:Name="Source_Control" Header="Source Control: TFS" Margin="43,28,40,38">
                         <Grid x:Name="Src_grid" Margin="-6,-4,7,1">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition/>
@@ -81,7 +81,7 @@
                                          Controls:TextBoxHelper.Watermark="Enter user password"
                                          MaxLength="14"/>
                             <CheckBox x:Name="rememberLogin_checkbox" Content="Remember login info" HorizontalAlignment="Left" Margin="10,229,0,0" VerticalAlignment="Top" Height="28" Width="153" Foreground="White" Checked="rememberTFScfg_click"/>
-                            <CheckBox x:Name="FetchOnLaunch_checkbox" Content="Fetch on launch build" HorizontalAlignment="Left" Margin="10,262,0,0" VerticalAlignment="Top" Foreground="White" Checked="FetchCheckBox_Click" Unchecked="FetchCheckBox_Click" IsEnabled="False"/>
+                            <CheckBox x:Name="FetchOnLaunch_checkbox" Content="Fetch on scheduled" HorizontalAlignment="Left" Margin="10,262,0,0" VerticalAlignment="Top" Foreground="White" Checked="FetchCheckBox_Click" Unchecked="FetchCheckBox_Click" />
                             <Button x:Name="fetchcode_button" Content="fetch code"  Style="{StaticResource AccentedSquareButtonStyle}" 
                             	Click="FetchButton_OnClick"
                             	Margin="0,0,10,19" Height="27" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="126"/>
@@ -91,8 +91,8 @@
             </TabItem>
             <TabItem Header="Schedule">
                 <Grid x:Name="schedule">
-                    <wpfTool:TimePicker x:Name="m_timepicker" Margin="10,36,335,327" Background="White"></wpfTool:TimePicker>
-                    <CheckBox x:Name="schedule_cbx" Content="Run daily" HorizontalAlignment="Left" Margin="224,36,0,0" VerticalAlignment="Top" Height="27" Width="109" Foreground="White" Checked="OnDailyCheck" Unchecked="OnDailyCheck"/>
+                    <wpfTool:TimePicker x:Name="m_timepicker" Margin="19,55,0,0" Background="White" HorizontalAlignment="Left" Width="169" Height="26" VerticalAlignment="Top"></wpfTool:TimePicker>
+                    <CheckBox x:Name="schedule_cbx" Content="Enable scheduled run" HorizontalAlignment="Left" Margin="19,10,0,0" VerticalAlignment="Top" Height="27" Width="145" Foreground="White" Checked="OnDailyCheck" Unchecked="OnDailyCheck"/>
                 </Grid>
             </TabItem>
             <TabItem Header="Output">
@@ -105,7 +105,7 @@
                 </Grid>
             </TabItem>
             <Grid Margin="10,10,10,8"/>
-            
+
         </Controls:MetroAnimatedSingleRowTabControl>
         <Label x:Name="timer_label" Content="" Margin="0,0,10,42" Foreground="White" Height="25" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="126"/>
     </Grid>
