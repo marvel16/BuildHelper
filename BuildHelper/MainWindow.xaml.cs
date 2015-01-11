@@ -51,7 +51,6 @@ namespace BuildHelper
 		public MainWindow( )
 		{
 			InitializeComponent();
-			
 			config.LoadConfig();
 
 			foreach ( var item in config.Prjcfg )

@@ -3,6 +3,7 @@
         xmlns:wpfTool="clr-namespace:Xceed.Wpf.Toolkit;assembly=Xceed.Wpf.Toolkit"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:Controls="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
+        Icon="icon.ico"
         ResizeMode="CanResizeWithGrip"
         EnableDWMDropShadow="True"           
         Title="Build Helper v1.0.0" Height="381" Width="656" MinHeight="500" MinWidth="700" WindowStartupLocation="CenterScreen" Background="#FF323232" WindowStyle="ThreeDBorderWindow">
