@@ -6,7 +6,7 @@
         Icon="icon.ico"
         ResizeMode="CanResizeWithGrip"
         EnableDWMDropShadow="True"           
-        Title="Build Helper v1.0.0" Height="381" Width="656" MinHeight="500" MinWidth="700" WindowStartupLocation="CenterScreen" Background="#FF323232" WindowStyle="ThreeDBorderWindow">
+        Title="Build Helper v1.0.0" Height="394" Width="583" MinHeight="500" MinWidth="700" WindowStartupLocation="CenterScreen" Background="#FF323232" WindowStyle="ThreeDBorderWindow">
     <Controls:MetroWindow.Resources>
         <Color x:Key="Color1">#19FFFFFF</Color>
     </Controls:MetroWindow.Resources>
@@ -53,8 +53,8 @@
                     <Button x:Name="movedown_button" Content="DOWN" Margin="0,0,218,218" Background="#FF39B6EC" Click="On_movedown" 
                             HorizontalAlignment="Right" Width="50" Height="26" VerticalAlignment="Bottom"
                             />
-                    <Button x:Name="filedialog_button"  HorizontalAlignment="Right" Margin="0,289,46,54" Width="45"
-                             Click="filedialog_button_Click" BorderBrush="{x:Null}" Background="{x:Null}" Focusable="False" >
+                    <Button x:Name="filedialog_button" Margin="0,0,46,54"
+                             Click="filedialog_button_Click" BorderBrush="{x:Null}" Background="{x:Null}" Focusable="False" Height="46" VerticalAlignment="Bottom" HorizontalAlignment="Right" >
                         <Image Source="Resources/solutionIcon.png" Height="36" Width="35" Margin="0,0,0,0" UseLayoutRounding="True" />
                     </Button>
                 </Grid>
