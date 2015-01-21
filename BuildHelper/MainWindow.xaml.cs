@@ -306,6 +306,10 @@ namespace BuildHelper
 				return;
 			int current = (int)status.GetType().GetProperty("Current").GetValue(status, null);
 			int progress = (current / e.Total);
+			using ( StreamWriter w = File.AppendText("OnGetting.txt") )
+			{
+				w.WriteLine(progress.ToString());
+			}
 			controller.SetProgress(progress);
 			controller.SetMessage((progress*100).ToString());
 		}
@@ -450,7 +454,7 @@ namespace BuildHelper
 			if ( now > sched_time )
 				sched_time = sched_time.AddDays(1.0);
 
-			var timespan = ( new TimeSpan(sched_time.Day, sched_time.Hour, sched_time.Minute, 0) - new TimeSpan(now.Day, now.Hour, now.Minute, 0) );
+			var timespan = sched_time - now;
 			return timespan;
 		}
 
