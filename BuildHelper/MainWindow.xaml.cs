@@ -292,10 +292,8 @@ namespace BuildHelper
 			string tfsWorkSpace = tfs_workspace_textbox.Text;
 			string requestPath = requestpath_textbox.Text;
 			
-			controller = await this.ShowProgressAsync("Please wait", "Downloading...", true);
-			controller.SetCancelable(false);
+			controller = await this.ShowProgressAsync("Please wait", "Downloading...", false);
 			await Task.Run(( ) => FetchCode(userName, userPass, tfsPath, tfsWorkSpace, requestPath));
-			Thread.Sleep(5000);
 			Launch.IsEnabled = true;
 			await controller.CloseAsync();
 
@@ -307,7 +305,11 @@ namespace BuildHelper
 			if(e.Total == 0)
 				return;
 			int current = (int)status.GetType().GetProperty("Current").GetValue(status, null);
-			int progress = 100*(current / e.Total);
+			int progress = (current / e.Total);
+			using ( StreamWriter w = File.AppendText("OnGetting.txt") )
+			{
+				w.WriteLine(progress.ToString());
+			}
 			controller.SetProgress(progress);
 			controller.SetMessage((progress*100).ToString());
 		}
@@ -452,7 +454,7 @@ namespace BuildHelper
 			if ( now > sched_time )
 				sched_time = sched_time.AddDays(1.0);
 
-			var timespan = ( new TimeSpan(sched_time.Day, sched_time.Hour, sched_time.Minute, 0) - new TimeSpan(now.Day, now.Hour, now.Minute, 0) );
+			var timespan = sched_time - now;
 			return timespan;
 		}
 
@@ -492,7 +494,7 @@ namespace BuildHelper
 	{
 		public string ProjectName = String.Empty;
 		public string ProjectPath = String.Empty;
-		public VCS projectVCS = VCS.TFS; //TODO
+		//public VCS projectVCS = VCS.TFS; //TODO
 		public bool x86D = false;
 		public bool x86R = false;
 		public bool x64D = false;
@@ -562,7 +564,9 @@ namespace BuildHelper
 			{
 				using ( FileStream fs = new FileStream(currentDir + @"\" + path, FileMode.Create) )
 				{
-					XmlWriter writer = XmlWriter.Create(fs);
+					XmlWriterSettings xmlSettings = new XmlWriterSettings();
+					xmlSettings.Indent = true;
+					XmlWriter writer = XmlWriter.Create(fs, xmlSettings);
 					XmlSerializer ser = new XmlSerializer(typeof(T));
 					ser.Serialize(writer, cfg);
 				}
