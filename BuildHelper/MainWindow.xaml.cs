@@ -432,7 +432,7 @@ namespace BuildHelper
 			ScheduleTimer.Start();
 		}
 
-		private void Scheduletimer_Tick(object sender, EventArgs e)
+		private async void Scheduletimer_Tick(object sender, EventArgs e)
 		{
 			if ( schedule_cbx.IsChecked == false )
 				return;
@@ -440,7 +440,7 @@ namespace BuildHelper
 			ScheduleTimer.Interval = GetTriggerTimeSpan();
 			ScheduleTimer.Start();
 			if ( FetchOnLaunch_checkbox.IsChecked == true)
-				FetchButton_OnClick(sender, new RoutedEventArgs());
+				await FetchButton_OnClick(sender, new RoutedEventArgs());
 			LaunchButton_OnClick(sender, new RoutedEventArgs());
 		}
 
