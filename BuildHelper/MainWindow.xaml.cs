@@ -442,7 +442,7 @@ namespace BuildHelper
 			ScheduleTimer.Interval = GetTriggerTimeSpan();
 			ScheduleTimer.Start();
 			if ( FetchOnLaunch_checkbox.IsChecked == true)
-				await FetchButton_OnClick(sender, new RoutedEventArgs());
+				await Task.Run(() => FetchButton_OnClick(sender, new RoutedEventArgs()));
 			LaunchButton_OnClick(sender, new RoutedEventArgs());
 		}
 
