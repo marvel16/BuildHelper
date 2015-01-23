@@ -204,6 +204,47 @@ namespace BuildHelper
 				});
 		}
 
+		private void FetchCode( string userName, string userPass, string tfsPath, string tfsWorkSpace, string requestPath )
+		{
+			GetStatus getStat = null;
+			try
+			{
+				ICredentials myCred = new NetworkCredential(userName, userPass);
+				TfsTeamProjectCollection collection = new TfsTeamProjectCollection(new Uri(tfsPath), myCred);
+				collection.EnsureAuthenticated();
+				VersionControlServer vcs = collection.GetService<VersionControlServer>();
+				Workspace myWorkspace = vcs.GetWorkspace(tfsWorkSpace, vcs.AuthorizedUser);
+				vcs.Getting += OnGettingEvent;
+				GetRequest request = new GetRequest(new ItemSpec(requestPath, RecursionType.Full), VersionSpec.Latest);
+				getStat = myWorkspace.Get(request, GetOptions.None);
+			}
+			catch ( Exception ex )
+			{
+				System.Windows.MessageBox.Show("Fetching code failed: " + ex.Message);
+			}
+			if ( getStat == null || getStat.NumFailures > 0 || getStat.NumWarnings > 0 )
+			{
+				output_listbox.Dispatcher.Invoke((Action)( ( ) =>
+				{
+					output_listbox.Items.Add("Errors while getting latest have occurred");
+				} ));
+				return;
+			}
+
+			if ( getStat.NumOperations == 0 )
+			{
+				output_listbox.Dispatcher.Invoke((Action)( ( ) =>
+				{
+					output_listbox.Items.Add("All files are up to date");
+				} ));
+			}
+			else
+				output_listbox.Dispatcher.Invoke((Action)( ( ) =>
+				{
+					output_listbox.Items.Add("Successfully downloaded code");
+				} ));
+		}
+
 		private void x64R_checkbox_CheckedChange( object sender, RoutedEventArgs e )
 		{
 			if ( ProjectListBox.SelectedIndex < 0 )
@@ -280,9 +321,6 @@ namespace BuildHelper
 			config.SaveConfig();
 		}
 
-
-		
-
 		private async void FetchButton_OnClick( object sender, RoutedEventArgs e )
 		{
 			Launch.IsEnabled = false;
@@ -310,50 +348,14 @@ namespace BuildHelper
 			{
 				w.WriteLine(progress.ToString());
 			}
-			controller.SetProgress(progress);
-			controller.SetMessage((progress*100).ToString());
+			this.Dispatcher.Invoke(( ) =>
+			{
+				controller.SetProgress(progress);
+				controller.SetMessage(( progress*100 ).ToString());
+			});
 		}
 
-		private void FetchCode( string userName, string userPass, string tfsPath, string tfsWorkSpace, string requestPath )
-		{
-			GetStatus getStat = null;
-			try
-			{
-				ICredentials myCred = new NetworkCredential(userName, userPass);
-				TfsTeamProjectCollection collection = new TfsTeamProjectCollection(new Uri(tfsPath), myCred);
-				collection.EnsureAuthenticated();
-				VersionControlServer vcs = collection.GetService<VersionControlServer>();
-				Workspace myWorkspace = vcs.GetWorkspace(tfsWorkSpace, vcs.AuthorizedUser);
-				vcs.Getting += OnGettingEvent;
-				GetRequest request = new GetRequest(new ItemSpec(requestPath, RecursionType.Full), VersionSpec.Latest);
-				getStat = myWorkspace.Get(request, GetOptions.None);
-			}
-			catch ( Exception ex )
-			{
-				System.Windows.MessageBox.Show("Fetching code failed: " + ex.Message);
-			}
-			if (getStat == null || getStat.NumFailures > 0 || getStat.NumWarnings > 0)
-			{
-				output_listbox.Dispatcher.Invoke((Action)( () =>
-				{ 
-					output_listbox.Items.Add("Errors while getting latest have occurred");
-				}));
-				return;
-			}
-
-			if ( getStat.NumOperations == 0 )
-			{
-				output_listbox.Dispatcher.Invoke((Action)( ( ) =>
-				{
-					output_listbox.Items.Add("All files are up to date");
-				} ));
-			}
-			else
-				output_listbox.Dispatcher.Invoke((Action)( ( ) =>
-				{
-					output_listbox.Items.Add("Successfully downloaded code");
-				} ));
-		}
+		
 
 		private void FetchCheckBox_Click( object sender, RoutedEventArgs e )
 		{
@@ -370,10 +372,6 @@ namespace BuildHelper
 			config.SaveConfig();
 		}
 
-		private void OnListView_ItemsAdded(object sender, EventArgs e)
-		{
-			
-		}
 
 		private void On_moveup( object sender, RoutedEventArgs e )
 		{
@@ -406,6 +404,7 @@ namespace BuildHelper
 			ProjectListBox.Items.Insert(newIndex, selected);
 			// Restore selection
 			ProjectListBox.SelectedIndex = newIndex;
+			
 			config.Prjcfg.Clear();
 			foreach ( var item in ProjectListBox.Items )
 				config.Prjcfg.Add(item as Project);
@@ -418,7 +417,7 @@ namespace BuildHelper
 			dlg.DefaultExt = ".sln";
 			dlg.Filter = "Solution Files |*.sln";
 			
-			Nullable<bool> result = dlg.ShowDialog();
+			bool? result = dlg.ShowDialog();
 			if ( result == true )
 				Projectpath_textbox.Text = dlg.FileName;
 		}
@@ -439,10 +438,25 @@ namespace BuildHelper
 			if ( schedule_cbx.IsChecked == false )
 				return;
 			ScheduleTimer.Stop();
-			ScheduleTimer.Interval = GetTriggerTimeSpan();
+			ScheduleTimer.Interval = GetTriggerTimeSpan(); //set next tick timespan
 			ScheduleTimer.Start();
+			
+			//fetch code option checked
 			if ( FetchOnLaunch_checkbox.IsChecked == true)
-				await Task.Run(() => FetchButton_OnClick(sender, new RoutedEventArgs()));
+			{
+				Launch.IsEnabled = false;
+				string userName = tfs_username_textbox.Text;
+				string userPass = pw_passwordbox.Password;
+				string tfsPath = tfs_path_textbox.Text;
+				string tfsWorkSpace = tfs_workspace_textbox.Text;
+				string requestPath = requestpath_textbox.Text;
+
+				controller = await this.ShowProgressAsync("Please wait", "Downloading...", false);
+				await Task.Run(( ) => FetchCode(userName, userPass, tfsPath, tfsWorkSpace, requestPath));
+				Launch.IsEnabled = true;
+				await controller.CloseAsync();
+			}
+			//launch builds
 			LaunchButton_OnClick(sender, new RoutedEventArgs());
 		}
 
