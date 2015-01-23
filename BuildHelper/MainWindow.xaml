@@ -27,7 +27,7 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition/>
                     </Grid.ColumnDefinitions>
-                    <GroupBox x:Name="BuildOptions_Groupbox_Copy" Header="Build config" HorizontalAlignment="Right" Height="182" Margin="0,42,27,0" VerticalAlignment="Top" Width="135">
+                    <GroupBox x:Name="BuildOptions_Groupbox_Copy" Header="Build config" HorizontalAlignment="Right" Height="182" Margin="0,42,46,0" VerticalAlignment="Top" Width="135">
                         <Grid x:Name="grpboxGrid1" Margin="-3,2,-2,2">
                             <CheckBox x:Name="x64D_checkbox1" Content="Debug x64" HorizontalAlignment="Center" Height="25" Margin="10,40,0,0" VerticalAlignment="Top" Width="100" Foreground="White" Checked="x64D_checkbox_CheckedChange" Unchecked="x64D_checkbox_CheckedChange"/>
                             <CheckBox x:Name="x64R_checkbox1" Content="Release x64" HorizontalAlignment="Center" Height="25" Margin="10,10,0,0" VerticalAlignment="Top" Width="100" Foreground="#FFFDFDFD" Checked="x64R_checkbox_CheckedChange" Unchecked="x64R_checkbox_CheckedChange"/>
@@ -93,7 +93,7 @@
             <TabItem Header="Schedule">
                 <Grid x:Name="schedule">
                     <wpfTool:TimePicker x:Name="m_timepicker" Margin="19,55,0,0" Background="White" HorizontalAlignment="Left" Width="169" Height="26" VerticalAlignment="Top"></wpfTool:TimePicker>
-                    <CheckBox x:Name="schedule_cbx" Content="Enable scheduled run" HorizontalAlignment="Left" Margin="19,10,0,0" VerticalAlignment="Top" Height="27" Width="145" Foreground="White" Checked="OnDailyCheck" Unchecked="OnDailyCheck"/>
+                    <CheckBox x:Name="schedule_cbx" Content="Run scheduled tasks" HorizontalAlignment="Left" Margin="19,10,0,0" VerticalAlignment="Top" Height="27" Width="145" Foreground="White" Checked="OnDailyCheck" Unchecked="OnDailyCheck"/>
                 </Grid>
             </TabItem>
             <TabItem Header="Output">

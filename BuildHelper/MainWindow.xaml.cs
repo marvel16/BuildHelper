@@ -55,6 +55,7 @@ namespace BuildHelper
 
 			foreach ( var item in config.Prjcfg )
 				ProjectListBox.Items.Add(item);
+			//initialize field from config
 			tfs_username_textbox.Text = config.Tfscfg.UserName;
 			tfs_path_textbox.Text = config.Tfscfg.TfsPath;
 			tfs_workspace_textbox.Text = config.Tfscfg.TfsWorkspace;
@@ -87,7 +88,8 @@ namespace BuildHelper
 				return;
 			}
 			startTime = DateTime.Now;
-			output_listbox.Items.Clear();
+			if(schedule_cbx.IsChecked == false)
+				output_listbox.Items.Clear();
 			Launch.Content = "Cancel builds";
 			timer.Start();
 			CreateBuildQueue();
@@ -210,9 +212,9 @@ namespace BuildHelper
 			try
 			{
 				ICredentials myCred = new NetworkCredential(userName, userPass);
-				TfsTeamProjectCollection collection = new TfsTeamProjectCollection(new Uri(tfsPath), myCred);
-				collection.EnsureAuthenticated();
-				VersionControlServer vcs = collection.GetService<VersionControlServer>();
+				TfsTeamProjectCollection tfs = new TfsTeamProjectCollection(new Uri(tfsPath), myCred);
+				tfs.EnsureAuthenticated();
+				VersionControlServer vcs = tfs.GetService<VersionControlServer>();
 				Workspace myWorkspace = vcs.GetWorkspace(tfsWorkSpace, vcs.AuthorizedUser);
 				vcs.Getting += OnGettingEvent;
 				GetRequest request = new GetRequest(new ItemSpec(requestPath, RecursionType.Full), VersionSpec.Latest);
@@ -220,7 +222,11 @@ namespace BuildHelper
 			}
 			catch ( Exception ex )
 			{
-				System.Windows.MessageBox.Show("Fetching code failed: " + ex.Message);
+				output_listbox.Dispatcher.Invoke((Action)( ( ) =>
+				{
+					output_listbox.Items.Add("Fetching code failed with exception: " + ex.Message);
+				} ));
+				return;
 			}
 			if ( getStat == null || getStat.NumFailures > 0 || getStat.NumWarnings > 0 )
 			{
@@ -339,7 +345,7 @@ namespace BuildHelper
 
 		private void OnGettingEvent(object sender, GettingEventArgs e)
 		{
-			GettingEventArgs status = (GettingEventArgs)e;
+			var status = (GettingEventArgs)e;
 			if(e.Total == 0)
 				return;
 			int current = (int)status.GetType().GetProperty("Current").GetValue(status, null);
