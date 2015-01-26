@@ -61,6 +61,12 @@ namespace BuildHelper
 			tfs_workspace_textbox.Text = config.Tfscfg.TfsWorkspace;
 			pw_passwordbox.Password = config.Tfscfg.PassWord;
 			requestpath_textbox.Text = config.Tfscfg.RequestPath;
+
+			//Tag radioButtons with resolve confict option
+			noautroresolve_rbx.Tag = GetOptions.NoAutoResolve;
+			none_rbx.Tag = GetOptions.None;
+			overwrite_rbx.Tag = GetOptions.Overwrite;
+
 			timer.Interval = new TimeSpan(0, 0, 1);
 			timer.Tick += dispatcherTimer_Tick;
 			ScheduleTimer.Tick += Scheduletimer_Tick;
@@ -70,7 +76,7 @@ namespace BuildHelper
 		private void dispatcherTimer_Tick( object sender, EventArgs e )
 		{
 			// Updating the Label which displays the current second
-			timer_label.Content = (DateTime.Now - startTime).ToString();
+			timer_label.Content = (DateTime.Now - startTime).ToString(@"hh':'mm':'ss");
 		}
 
 		private void LaunchButton_OnClick(object sender, EventArgs e)
@@ -88,7 +94,7 @@ namespace BuildHelper
 				return;
 			}
 			startTime = DateTime.Now;
-			if(schedule_cbx.IsChecked == false)
+			if(ScheduleTimer.IsEnabled == false)
 				output_listbox.Items.Clear();
 			Launch.Content = "Cancel builds";
 			timer.Start();
@@ -177,20 +183,29 @@ namespace BuildHelper
 				output_listbox.Dispatcher.Invoke(
 					delegate
 					{
-						output_listbox.Items.Add(result);
-						output_listbox.ScrollIntoView(output_listbox.Items[output_listbox.Items.Count-1]);
+						ListViewItem li = new ListViewItem();
+						li.Content = result;
+						if (result.Contains("warning"))
+							li.Foreground = Brushes.Orange;
+						if (result.Contains("error") || result.Contains("failed") || result.Contains("unresolved")  || result.Contains("not found"))
+								li.Foreground = Brushes.Red;
+						if (result.Contains("succeeded"))
+							li.Foreground = Brushes.Green;
+						output_listbox.Items.Add(li);
+						output_listbox.ScrollIntoView(li);
 					});
 			}
 		}
 
 		private void ProcExited(object sender, EventArgs e)
 		{
+			string projName = ( sender as Process ).StartInfo.Arguments;
+			TimeSpan buildtime = DateTime.Now - projstarttime;
+			Task.Run(() => AddBuildTime(projName, buildtime.Ticks));
 			if ( bBuildsLaunched )
-			this.Dispatcher.Invoke(( ) =>
+				this.Dispatcher.Invoke(() =>
 				{
-					//status_progressRing.IsActive = !status_progressRing.IsActive;
-					string projName = ( sender as Process ).StartInfo.Arguments;
-					output_listbox.Items.Add(projName + ": " + (projstarttime - DateTime.Now).ToString());
+					output_listbox.Items.Add(projName + ": " + buildtime.ToString(@"hh':'mm':'ss"));
 					//make sure no children processes alive
 					KillProcessAndChildren(BuildQueue.Peek().Id);
 					BuildQueue.Dequeue();
@@ -200,13 +215,33 @@ namespace BuildHelper
 						Launch.Content = "Launch builds!";
 						status_progressRing.IsActive = !status_progressRing.IsActive;
 						bBuildsLaunched = false;
+						Launch.IsEnabled = true;
 					}
 					else
 						StartBuild();
-				});
+			});
 		}
 
-		private void FetchCode( string userName, string userPass, string tfsPath, string tfsWorkSpace, string requestPath )
+		private void AddBuildTime(string arg, long time)
+		{
+			foreach ( var proj in config.Prjcfg )
+			{
+				if (arg.Contains(proj.ProjectPath))
+				{
+					proj.buildTimes.Add(time);
+					config.SaveConfig();
+					return;
+				}
+			}
+		}
+
+		private GetOptions GetFetchOptions()
+		{
+			var rbx = Src_grid.Children.OfType<RadioButton>().FirstOrDefault(r => (bool)r.IsChecked);
+			return (GetOptions)rbx.Tag;
+		}
+
+		private void FetchCode( string userName, string userPass, string tfsPath, string tfsWorkSpace, string requestPath , GetOptions opts)
 		{
 			GetStatus getStat = null;
 			try
@@ -218,7 +253,8 @@ namespace BuildHelper
 				Workspace myWorkspace = vcs.GetWorkspace(tfsWorkSpace, vcs.AuthorizedUser);
 				vcs.Getting += OnGettingEvent;
 				GetRequest request = new GetRequest(new ItemSpec(requestPath, RecursionType.Full), VersionSpec.Latest);
-				getStat = myWorkspace.Get(request, GetOptions.None);
+
+				getStat = myWorkspace.Get(request, opts); 
 			}
 			catch ( Exception ex )
 			{
@@ -337,7 +373,8 @@ namespace BuildHelper
 			string requestPath = requestpath_textbox.Text;
 			
 			controller = await this.ShowProgressAsync("Please wait", "Downloading...", false);
-			await Task.Run(( ) => FetchCode(userName, userPass, tfsPath, tfsWorkSpace, requestPath));
+			GetOptions opts = GetFetchOptions();
+			await Task.Run(( ) => FetchCode(userName, userPass, tfsPath, tfsWorkSpace, requestPath, opts));
 			Launch.IsEnabled = true;
 			await controller.CloseAsync();
 
@@ -360,8 +397,6 @@ namespace BuildHelper
 				controller.SetMessage(( progress*100 ).ToString());
 			});
 		}
-
-		
 
 		private void FetchCheckBox_Click( object sender, RoutedEventArgs e )
 		{
@@ -432,7 +467,7 @@ namespace BuildHelper
 
 		private void RunDaily()
 		{
-			if (m_timepicker.Value == null || schedule_cbx.IsChecked == false)
+			if (m_timepicker.Value == null)
 				return;
 
 			ScheduleTimer.Interval = GetTriggerTimeSpan();
@@ -441,8 +476,6 @@ namespace BuildHelper
 
 		private async void Scheduletimer_Tick(object sender, EventArgs e)
 		{
-			if ( schedule_cbx.IsChecked == false )
-				return;
 			ScheduleTimer.Stop();
 			ScheduleTimer.Interval = GetTriggerTimeSpan(); //set next tick timespan
 			ScheduleTimer.Start();
@@ -457,8 +490,9 @@ namespace BuildHelper
 				string tfsWorkSpace = tfs_workspace_textbox.Text;
 				string requestPath = requestpath_textbox.Text;
 
-				controller = await this.ShowProgressAsync("Please wait", "Downloading...", false);
-				await Task.Run(( ) => FetchCode(userName, userPass, tfsPath, tfsWorkSpace, requestPath));
+				controller = await this.ShowProgressAsync("Please wait", "Downloading...", true);
+				GetOptions opts = GetFetchOptions();
+				await Task.Run(( ) => FetchCode(userName, userPass, tfsPath, tfsWorkSpace, requestPath, opts));
 				Launch.IsEnabled = true;
 				await controller.CloseAsync();
 			}
@@ -478,13 +512,40 @@ namespace BuildHelper
 			return timespan;
 		}
 
-		private void OnDailyCheck( object sender, RoutedEventArgs e )
+		private void runschedule_btn_Click(object sender, RoutedEventArgs e)
 		{
-			if(schedule_cbx.IsChecked == false)
+			if ( m_timepicker.Value == null )
+			{
+				System.Windows.MessageBox.Show("Pick scheduled time");
+				return;
+			}
+			if(ScheduleTimer.IsEnabled)
+			{
 				ScheduleTimer.Stop();
+				runschedule_btn.Content = "schedule";
+				Launch.IsEnabled = true;
+			}
 			else
+			{
 				RunDaily();
+				runschedule_btn.Content = "cancel";
+				Launch.IsEnabled = false;
+			}
 		}
+
+		private void calculatestats_btn_Click( object sender, RoutedEventArgs e )
+		{
+			if ( ProjectListBox.SelectedIndex >= 0)
+			{ 
+				Stats stats = new Stats();
+				stats.Calculate((ProjectListBox.Items[ProjectListBox.SelectedIndex] as Project).buildTimes);
+				TimeSpan mutime = new TimeSpan((long)stats.Mu);
+				TimeSpan sigmatime = new TimeSpan((long)stats.Sigma);
+				mu_tbx.Text = mutime.ToString(@"hh':'mm':'ss");
+				sigma_tbx.Text = sigmatime.ToString(@"hh':'mm':'ss");
+			}
+		}
+
 	}
 
 	
@@ -519,6 +580,10 @@ namespace BuildHelper
 		public bool x86R = false;
 		public bool x64D = false;
 		public bool x64R = false;
+
+		[XmlElement(ElementName = "BuildTimes")]
+		public List<long> buildTimes = new List<long>();
+
 		public override string ToString( )
 		{
 			return ProjectName;
@@ -558,6 +623,33 @@ namespace BuildHelper
 				field |= 1 <<3;
 			return field;
 		}
+	}
+
+	
+
+	public class Stats
+	{
+		public double Mu {get; private set;}
+		public double Sigma {get; private set;}
+		public double Dispersion
+		{
+			get { return Sigma*Sigma; }
+			set { }
+		}
+		
+		public void Calculate(List<long> values)
+		{
+			if ( values.Count == 0 )
+				return;
+			Mu = values.Average();
+			double temp = values.Sum(arg => Math.Pow(arg - Mu, 2));
+			if ( values.Count > 1 )
+				Sigma = Math.Sqrt(temp / ( values.Count - 1 )); // Sqrt(dispersion)
+			else
+				Sigma = 0;
+		}
+
+		
 	}
 
 	public class CfgMan
