@@ -28,6 +28,7 @@ using Microsoft.TeamFoundation.Client;
 using Microsoft.TeamFoundation.VersionControl.Client;
 using System.Management;
 using Xceed.Wpf.Toolkit;
+using System.Text.RegularExpressions;
 
 namespace BuildHelper
 {
@@ -47,6 +48,7 @@ namespace BuildHelper
 		DateTime startTime;
 		DateTime projstarttime;
 		ProgressDialogController controller;
+		private static long ItemCount = 0;
 		
 		public MainWindow( )
 		{
@@ -67,6 +69,7 @@ namespace BuildHelper
 			none_rbx.Tag = GetOptions.None;
 			overwrite_rbx.Tag = GetOptions.Overwrite;
 
+			m_timepicker.Value = DateTime.Now;
 			timer.Interval = new TimeSpan(0, 0, 1);
 			timer.Tick += dispatcherTimer_Tick;
 			ScheduleTimer.Tick += Scheduletimer_Tick;
@@ -185,12 +188,15 @@ namespace BuildHelper
 					{
 						ListViewItem li = new ListViewItem();
 						li.Content = result;
-						if (result.Contains("warning"))
-							li.Foreground = Brushes.Orange;
-						if (result.Contains("error") || result.Contains("failed") || result.Contains("unresolved")  || result.Contains("not found"))
-								li.Foreground = Brushes.Red;
-						if (result.Contains("succeeded"))
+
+						if (Regex.Matches(result, @"\b[Ss]ucceeded\b").Count > 0 )
 							li.Foreground = Brushes.Green;
+						if ( Regex.Matches(result, @"\b[Ww]arning\b").Count > 0 )
+							li.Foreground = Brushes.Orange;
+						if (Regex.Matches(result, @"\b[Ee]rror:\b").Count > 0 || Regex.Matches(result, @"[1-9] \bfailed\b").Count > 0 || 
+							Regex.Matches(result, @"\bnot found\b").Count > 0 || Regex.Matches(result, @"\b[Uu]nresolved\b").Count > 0)
+							li.Foreground = Brushes.Red;
+						
 						output_listbox.Items.Add(li);
 						output_listbox.ScrollIntoView(li);
 					});
@@ -382,19 +388,14 @@ namespace BuildHelper
 
 		private void OnGettingEvent(object sender, GettingEventArgs e)
 		{
-			var status = (GettingEventArgs)e;
 			if(e.Total == 0)
 				return;
-			int current = (int)status.GetType().GetProperty("Current").GetValue(status, null);
-			int progress = (current / e.Total);
-			using ( StreamWriter w = File.AppendText("OnGetting.txt") )
-			{
-				w.WriteLine(progress.ToString());
-			}
+			ItemCount++;
+			double progress = ItemCount / (double)e.Total;
 			this.Dispatcher.Invoke(( ) =>
 			{
 				controller.SetProgress(progress);
-				controller.SetMessage(( progress*100 ).ToString());
+				controller.SetMessage("Downloading...\n" + ItemCount.ToString() + " of "+ e.Total.ToString() + ": "+ e.ServerItem);
 			});
 		}
 
