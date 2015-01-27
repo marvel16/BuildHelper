@@ -258,6 +258,7 @@ namespace BuildHelper
 				VersionControlServer vcs = tfs.GetService<VersionControlServer>();
 				Workspace myWorkspace = vcs.GetWorkspace(tfsWorkSpace, vcs.AuthorizedUser);
 				vcs.Getting += OnGettingEvent;
+				ItemCount = 0;// reset server items counter
 				GetRequest request = new GetRequest(new ItemSpec(requestPath, RecursionType.Full), VersionSpec.Latest);
 
 				getStat = myWorkspace.Get(request, opts); 
