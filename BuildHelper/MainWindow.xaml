@@ -107,22 +107,27 @@
             <TabItem Header="Output">
                 <Grid Background="#FF323232">
                     <ListView x:Name="output_listbox" Margin="3,3,3,3" Background="{x:Null}" BorderBrush="#FF0D82A4" BorderThickness="2">
+                        <ListView.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Clear" Click="OnClearClick"/>
+                            </ContextMenu>
+                        </ListView.ContextMenu>
                         <TextBlock Padding="0,0,10,0" 
-                        Text="{Binding Path=Color, Mode=Default}"
-                        />
+                        Text="{Binding Path=Color, Mode=Default}"/>
                     </ListView>
                 </Grid>
             </TabItem>
             <Grid Margin="10,10,10,8"/>
             <TabItem Header="Stats">
                 <Grid x:Name="stats">
-                    <TextBox x:Name="mu_tbx" HorizontalAlignment="Left" Height="25" Margin="36,24,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="88"/>
-                    <TextBox x:Name="sigma_tbx" HorizontalAlignment="Left" Height="25" Margin="36,65,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="88"/>
-                    <Label Content="μ" HorizontalAlignment="Left" Margin="10,17,0,0" VerticalAlignment="Top" Foreground="White" FontSize="18" Height="35" FontWeight="Bold" FontStyle="Italic"/>
-                    <Label Content="σ" HorizontalAlignment="Left" Margin="10,57,0,0" VerticalAlignment="Top" Foreground="White" FontSize="18" FontWeight="Bold" FontStyle="Italic"/>
+                    <TextBox x:Name="mu_tbx" HorizontalAlignment="Left" Height="25" Margin="53,77,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="88"/>
+                    <TextBox x:Name="sigma_tbx" HorizontalAlignment="Left" Height="25" Margin="208,77,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="88"/>
+                    <Label Content="μ" HorizontalAlignment="Left" Margin="27,68,0,0" VerticalAlignment="Top" Foreground="White" FontSize="18" Height="35" FontWeight="Bold" FontStyle="Italic" ToolTip="Arithmetic mean"/>
+                    <Label Content="σ" HorizontalAlignment="Left" Margin="182,68,0,0" VerticalAlignment="Top" Foreground="White" FontSize="18" FontWeight="Bold" FontStyle="Italic" ToolTip="Standard deviation"/>
                     <Button x:Name="calculatestats_btn" 
                             Style="{StaticResource AccentedSquareButtonStyle}"
-                            Content="Calculate" HorizontalAlignment="Left" Height="28" Margin="178,24,0,0" VerticalAlignment="Top" Width="114" Click="calculatestats_btn_Click"/>
+                            Content="Calculate" HorizontalAlignment="Left" Height="28" Margin="347,21,0,0" VerticalAlignment="Top" Width="114" Click="calculatestats_btn_Click"/>
+                    <ComboBox HorizontalAlignment="Left" Height="26" Margin="53,23,0,0" VerticalAlignment="Top" Width="243" IsReadOnly="True" IsEnabled="False"/>
                 </Grid>
             </TabItem>
 
