@@ -109,7 +109,8 @@
                     <ListView x:Name="output_listbox" Margin="3,3,3,3" Background="{x:Null}" BorderBrush="#FF0D82A4" BorderThickness="2">
                         <ListView.ContextMenu>
                             <ContextMenu>
-                                <MenuItem Header="Clear" Click="OnClearClick"/>
+                                <MenuItem Header="Clear Output" Click="OnClearClick"/>
+                                <MenuItem Header="Clear Log File" />
                             </ContextMenu>
                         </ListView.ContextMenu>
                         <TextBlock Padding="0,0,10,0" 

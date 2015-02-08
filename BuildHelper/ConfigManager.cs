@@ -115,6 +115,12 @@ namespace BuildHelper
     public static class Logger
     {
         static StreamWriter sw = new StreamWriter("log.txt", true);
+
+        public static void ClearLog()
+        {
+            File.Delete("log.txt");
+        }
+
         public static void Log(string logMessage)
         {
             sw.WriteLine("{0} : {1}", DateTime.Now.ToString(), logMessage);

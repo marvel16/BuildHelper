@@ -350,6 +350,11 @@ namespace BuildHelper
             output_listbox.Items.Clear();
         }
 
+        private void OnClearLogFileClick(object sender, RoutedEventArgs e)
+        {
+            Logger.ClearLog();
+        }
+
         private void createProject_button_Click( object sender, RoutedEventArgs e )
         {
             if ( String.IsNullOrEmpty(Projectname_textbox.Text) )
