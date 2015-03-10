@@ -89,7 +89,7 @@ namespace BuildHelper
 
     public class Stats
     {
-        public double Mu { get; private set; 
+        public double Mu { get; private set; }
         public double Sigma { get; private set; }
         public double Dispersion
         {
