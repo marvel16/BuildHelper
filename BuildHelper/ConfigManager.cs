@@ -89,7 +89,7 @@ namespace BuildHelper
 
     public class Stats
     {
-        public double Mu { get; private set; }
+        public double Mu { get; private set; 
         public double Sigma { get; private set; }
         public double Dispersion
         {
@@ -118,6 +118,10 @@ namespace BuildHelper
 
         public static void ClearLog()
         {
+            if (!File.Exists("log.txt"))
+                return;
+            
+            sw.Close();
             File.Delete("log.txt");
         }
 
@@ -133,13 +137,13 @@ namespace BuildHelper
         public TFSAccount Tfscfg = new TFSAccount();
         private static string currentDir = Directory.GetCurrentDirectory();
 
-        public void SaveConfig( )
+        public void SaveConfig()
         {
             Serialize(Prjcfg, "config.xml");
             Serialize(Tfscfg, "tfsconfig.xml");
         }
 
-        public void LoadConfig( )
+        public void LoadConfig()
         {
             Deserialize(ref Prjcfg, "config.xml");
             Deserialize(ref Tfscfg, "tfsconfig.xml");

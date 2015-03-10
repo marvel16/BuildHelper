@@ -110,7 +110,7 @@
                         <ListView.ContextMenu>
                             <ContextMenu>
                                 <MenuItem Header="Clear Output" Click="OnClearClick"/>
-                                <MenuItem Header="Clear Log File" />
+                                <MenuItem Header="Clear Log File" Click="OnClearLogFileClick"/>
                             </ContextMenu>
                         </ListView.ContextMenu>
                         <TextBlock Padding="0,0,10,0" 
