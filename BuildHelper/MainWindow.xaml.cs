@@ -15,6 +15,7 @@ using Microsoft.TeamFoundation.Client;
 using Microsoft.TeamFoundation.VersionControl.Client;
 using System.Management;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace BuildHelper
 {
@@ -219,13 +220,18 @@ namespace BuildHelper
             
             string projName = process.StartInfo.Arguments;
             TimeSpan buildtime = DateTime.Now - _projstarttime;
-            
-            Task.Run(() => AddBuildTime(projName, buildtime.Ticks));
-            
+            // Save only rebuild times
+
+            if (projName.Contains("/REBUILD"))
+                Task.Run(() => AddBuildTime(projName, buildtime.Ticks));
+
             if ( _bBuildsLaunched )
                 this.Dispatcher.Invoke(( ) =>
                 {
-                    OutputListbox.Items.Add(projName + ": " + buildtime.ToString(@"hh':'mm':'ss"));
+                    ListViewItem li = new ListViewItem();
+                    li.Foreground = Brushes.YellowGreen;
+                    li.Content = projName + ": " + buildtime.ToString(@"hh':'mm':'ss");
+                    OutputListbox.Items.Add(li);
                     //make sure no children processes alive
                     KillProcessAndChildren(_buildQueue.Peek().Id);
                     _buildQueue.Dequeue();
@@ -321,7 +327,7 @@ namespace BuildHelper
                 {
                     ListViewItem li = new ListViewItem();
                     li.Content = "Successfully downloaded code";
-                    li.Foreground = Brushes.ForestGreen;
+                    li.Foreground = Brushes.GreenYellow;
                     OutputListbox.Items.Add(li);
                     OutputListbox.ScrollIntoView(li);
                 });
@@ -432,19 +438,10 @@ namespace BuildHelper
             GetOptions opts = GetFetchOptions();
 
             _controller = await this.ShowProgressAsync("Please wait", "Downloading...");
-            _controller.SetCancelable(true);
-            _timer.Tick += CheckFetchDialogCancelled;
-            await Task.Run(( ) => FetchCode(userName, userPass, tfsPath, tfsWorkSpace, requestPath, opts));
-            _timer.Tick -= CheckFetchDialogCancelled;
-            _controller.CloseAsync();
+            await Task.Run(() => FetchCode(userName, userPass, tfsPath, tfsWorkSpace, requestPath, opts));
+            await _controller.CloseAsync();
         }
 
-        void CheckFetchDialogCancelled( object sender, EventArgs e )
-        {
-            if (!_controller.IsCanceled)
-                return;
-            _controller.CloseAsync();
-        }
 
         private void OnGettingEvent( object sender, GettingEventArgs e )
         {
@@ -452,7 +449,7 @@ namespace BuildHelper
                 return;
             _itemCount++;
             double progress = _itemCount / (double)e.Total;
-            this.Dispatcher.Invoke(() =>
+            Dispatcher.Invoke(() =>
             {
                 if ( progress > 1 )
                     _controller.SetProgress((int)progress);
@@ -538,7 +535,7 @@ namespace BuildHelper
             _scheduleTimer.Start();
         }
 
-        private async void Scheduletimer_Tick( object sender, EventArgs e )
+        private void Scheduletimer_Tick( object sender, EventArgs e )
         {
             _scheduleTimer.Stop();
             _scheduleTimer.Interval = GetTriggerTimeSpan(); //set next tick timespan
