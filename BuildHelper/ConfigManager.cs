@@ -37,6 +37,7 @@ namespace BuildHelper
         public bool X86R = false;
         public bool X64D = false;
         public bool X64R = false;
+        public bool Rebuild = true;
 
         [XmlElement(ElementName = "BuildTimes")]
         public List<long> BuildTimes = new List<long>();
@@ -45,17 +46,18 @@ namespace BuildHelper
         {
             return ProjectName;
         }
-        public List<string> GetRebuildInfoList( )
+        public List<string> GetBuildInfoList( )
         {
             List<string> ret = new List<string>();
+            string temp = Rebuild ? "/REBUILD " : "/BUILD ";
             if ( X64D )
-                ret.Add(@"Debug|x64");
+                ret.Add(temp + @"Debug|x64");
             if ( X64R )
-                ret.Add(@"Release|x64");
+                ret.Add(temp + @"Release|x64");
             if ( X86D )
-                ret.Add("Debug|" + ResolveProjectType()); // C++ is win32, C# is x86
+                ret.Add(temp + "Debug|" + ResolveProjectType()); // C++ is win32, C# is x86
             if ( X86R )
-                ret.Add("Release|" + ResolveProjectType());
+                ret.Add(temp + "Release|" + ResolveProjectType());
             return ret;
         }
 
@@ -105,7 +107,12 @@ namespace BuildHelper
 
     public static class Logger
     {
-        static StreamWriter _sw = new StreamWriter("log.txt", true);
+        private static StreamWriter _sw;
+
+        static Logger()
+        {
+            _sw = new StreamWriter("log.txt", true);
+        }
 
         public static void ClearLog()
         {
@@ -114,9 +121,10 @@ namespace BuildHelper
             
             _sw.Close();
             File.Delete("log.txt");
+            _sw = new StreamWriter("log.txt", true);
         }
 
-        public static void Log(string logMessage)
+        public static void Write(string logMessage)
         {
             _sw.WriteLine("{0} : {1}", DateTime.Now, logMessage);
         }
@@ -128,7 +136,7 @@ namespace BuildHelper
         public TfsAccount Tfscfg = new TfsAccount();
         private static readonly string CurrentDir = Directory.GetCurrentDirectory();
 
-        public void SaveConfig()
+        public void Save()
         {
             Serialize(Prjcfg, "config.xml");
             Serialize(Tfscfg, "tfsconfig.xml");

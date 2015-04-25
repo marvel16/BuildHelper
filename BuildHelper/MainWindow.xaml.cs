@@ -34,7 +34,7 @@ namespace BuildHelper
         DateTime _startTime;
         DateTime _projstarttime;
         ProgressDialogController _controller;
-        private static long _itemCount = 0;
+        private static long _itemCount;
 
         public MainWindow( )
         {
@@ -96,21 +96,25 @@ namespace BuildHelper
             foreach ( var elem in ProjectListBox.Items )
             {
                 Project proj = elem as Project;
-                if (proj != null)
+                if (proj == null)
+                    continue;
+                
+                foreach ( var configPlatform in proj.GetBuildInfoList())
                 {
-                    List<string> rebuildInfo = proj.GetRebuildInfoList();
-                    foreach ( var arg in rebuildInfo )
+                    Process process = new Process
                     {
-                        Process process = new Process();
-                        process.StartInfo.FileName = "C:/Program Files (x86)/Microsoft Visual Studio 12.0/Common7/IDE/devenv.com";
-                        process.StartInfo.UseShellExecute = false;
-                        process.StartInfo.RedirectStandardOutput = true;
-                        process.StartInfo.Arguments = "\"" + proj.ProjectPath + "\"" + @" /REBUILD " + arg;
-                        process.StartInfo.CreateNoWindow = true;
-                        process.EnableRaisingEvents = true;
-                        process.Exited += ProcExited;
-                        _buildQueue.Enqueue(process);
-                    }
+                        StartInfo =
+                        {
+                            FileName = "C:/Program Files (x86)/Microsoft Visual Studio 12.0/Common7/IDE/devenv.com",
+                            UseShellExecute = false,
+                            RedirectStandardOutput = true,
+                            Arguments = String.Format("\"{0}\" {1}", proj.ProjectPath, configPlatform),
+                            CreateNoWindow = true
+                        },
+                        EnableRaisingEvents = true
+                    };
+                    process.Exited += ProcExited;
+                    _buildQueue.Enqueue(process);
                 }
             }
         }
@@ -169,68 +173,73 @@ namespace BuildHelper
 
         private void ReadOutput( Process proc )
         {
-            string result;
-            while ( ( result = proc.StandardOutput.ReadLine() ) != null )
+            string message;
+            while ( (message = proc.StandardOutput.ReadLine()) != null )
             {
-                OutputListbox.Dispatcher.Invoke(
-                    delegate
-                    {
-                        bool isWarningErrorSuccess = false;
-                        ListViewItem li = new ListViewItem();
-                        li.Content = result;
-                        Logger.Log(result);
-                        if ( Regex.Matches(result, @"\b[Ss]ucceeded\b").Count > 0 )
+                
+                bool isWarningErrorSuccess = false;
+                SolidColorBrush itemColor = Brushes.White; 
+                Logger.Write(message);
+                
+                if (Regex.Matches(message, @"\b[Ee]rror:\b").Count > 0 || Regex.Matches(message, @"[1-9] \bfailed\b").Count > 0 ||
+                    Regex.Matches(message, @"\bnot found\b").Count > 0 || Regex.Matches(message, @"\b[Uu]nresolved\b").Count > 0)
+                {
+                    isWarningErrorSuccess = true;
+                    itemColor = Brushes.Red;
+                }
+                else if (Regex.Matches(message, @"\b[Ww]arning\b").Count > 0)
+                {
+                    isWarningErrorSuccess = true;
+                    itemColor = Brushes.Orange;
+                }
+                else if ( Regex.Matches(message, @"\b[Ss]ucceeded\b").Count > 0 )
+                {
+                    isWarningErrorSuccess = true;
+                    itemColor = Brushes.Green;
+                }
+                string messageCopy = message;
+                if (isWarningErrorSuccess)
+                {
+                    OutputListbox.Dispatcher.Invoke(
+                        delegate
                         {
-                            isWarningErrorSuccess = true;
-                            li.Foreground = Brushes.Green;
-                        }
-                        if ( Regex.Matches(result, @"\b[Ww]arning\b").Count > 0 )
-                        {
-                            isWarningErrorSuccess = true;
-                            li.Foreground = Brushes.Orange;
-                        }
-                        if ( Regex.Matches(result, @"\b[Ee]rror:\b").Count > 0 || Regex.Matches(result, @"[1-9] \bfailed\b").Count > 0 || 
-							Regex.Matches(result, @"\bnot found\b").Count > 0 || Regex.Matches(result, @"\b[Uu]nresolved\b").Count > 0 )
-                        {
-                            isWarningErrorSuccess = true;
-                            li.Foreground = Brushes.Red;
-                        }
-                        if (isWarningErrorSuccess)
-                        {
+                            ListViewItem li = new ListViewItem { Content = messageCopy, Foreground = itemColor };
                             OutputListbox.Items.Add(li);
                             OutputListbox.ScrollIntoView(li);
-                        }
-                    });
+                        });
+                }
             }
         }
 
         private void ProcExited( object sender, EventArgs e )
         {
             Process process = sender as Process;
-            if (process != null)
-            {
-                string projName = process.StartInfo.Arguments;
-                TimeSpan buildtime = DateTime.Now - _projstarttime;
-                Task.Run(( ) => AddBuildTime(projName, buildtime.Ticks));
-                if ( _bBuildsLaunched )
-                    this.Dispatcher.Invoke(( ) =>
+            if (process == null) 
+                return;
+            
+            string projName = process.StartInfo.Arguments;
+            TimeSpan buildtime = DateTime.Now - _projstarttime;
+            
+            Task.Run(() => AddBuildTime(projName, buildtime.Ticks));
+            
+            if ( _bBuildsLaunched )
+                this.Dispatcher.Invoke(( ) =>
+                {
+                    OutputListbox.Items.Add(projName + ": " + buildtime.ToString(@"hh':'mm':'ss"));
+                    //make sure no children processes alive
+                    KillProcessAndChildren(_buildQueue.Peek().Id);
+                    _buildQueue.Dequeue();
+                    if ( _buildQueue.Count == 0 )
                     {
-                        OutputListbox.Items.Add(projName + ": " + buildtime.ToString(@"hh':'mm':'ss"));
-                        //make sure no children processes alive
-                        KillProcessAndChildren(_buildQueue.Peek().Id);
-                        _buildQueue.Dequeue();
-                        if ( _buildQueue.Count == 0 )
-                        {
-                            _timer.Stop();
-                            Launch.Content = "Launch builds!";
-                            StatusProgressRing.IsActive = !StatusProgressRing.IsActive;
-                            _bBuildsLaunched = false;
-                            Launch.IsEnabled = true;
-                        }
-                        else
-                            StartBuild();
-                    });
-            }
+                        _timer.Stop();
+                        Launch.Content = "Launch builds!";
+                        StatusProgressRing.IsActive = !StatusProgressRing.IsActive;
+                        _bBuildsLaunched = false;
+                        Launch.IsEnabled = true;
+                    }
+                    else
+                        StartBuild();
+                });
         }
 
         private void AddBuildTime( string arg, long time )
@@ -238,7 +247,7 @@ namespace BuildHelper
             foreach (var proj in _config.Prjcfg.Where(proj => arg.Contains(proj.ProjectPath)))
             {
                 proj.BuildTimes.Add(time);
-                _config.SaveConfig();
+                _config.Save();
                 return;
             }
         }
@@ -267,33 +276,57 @@ namespace BuildHelper
             }
             catch ( Exception ex )
             {
+                
                 OutputListbox.Dispatcher.Invoke(( ) =>
                 {
-                    OutputListbox.Items.Add("Fetching code failed with exception: " + ex.Message);
+                    ListViewItem li = new ListViewItem
+                    {
+                        Content = "Fetching code failed with exception " + ex.Message,
+                        Foreground = Brushes.Red
+                    };
+                    OutputListbox.Items.Add(li);
+                    OutputListbox.ScrollIntoView(li);
                 });
                 return;
             }
+            
             if ( getStat == null || getStat.NumFailures > 0 || getStat.NumWarnings > 0 )
             {
-                OutputListbox.Dispatcher.Invoke(( ) =>
+                
+                OutputListbox.Dispatcher.Invoke(() =>
                 {
-                    OutputListbox.Items.Add("Errors while getting latest have occurred");
+                    ListViewItem li = new ListViewItem();
+                    li.Content = String.Format("Errors while fetching code have occurred: Failures {0}, Warnings {1}.", getStat.NumFailures, getStat.NumWarnings);
+                    li.Foreground = Brushes.Red;
+                    OutputListbox.Items.Add(li);
+                    OutputListbox.ScrollIntoView(li);
                 });
-                return;
             }
 
-            if ( getStat.NumOperations == 0 )
+            else if (getStat.NumOperations == 0)
             {
-                OutputListbox.Dispatcher.Invoke(( ) =>
+                
+                OutputListbox.Dispatcher.Invoke(() =>
                 {
-                    OutputListbox.Items.Add("All files are up to date");
+                    ListViewItem li = new ListViewItem();
+                    li.Content = "All files are up to date";
+                    li.Foreground = Brushes.GreenYellow;
+                    OutputListbox.Items.Add(li);
+                    OutputListbox.ScrollIntoView(li);
                 });
             }
             else
-                OutputListbox.Dispatcher.Invoke((Action)( ( ) =>
+            {
+                OutputListbox.Dispatcher.Invoke(() =>
                 {
-                    OutputListbox.Items.Add("Successfully downloaded code");
-                } ));
+                    ListViewItem li = new ListViewItem();
+                    li.Content = "Successfully downloaded code";
+                    li.Foreground = Brushes.ForestGreen;
+                    OutputListbox.Items.Add(li);
+                    OutputListbox.ScrollIntoView(li);
+                });
+                
+            }
         }
 
         private void x64R_checkbox_CheckedChange( object sender, RoutedEventArgs e )
@@ -301,7 +334,7 @@ namespace BuildHelper
             if ( ProjectListBox.SelectedIndex < 0 )
                 return;
             _config.Prjcfg[ProjectListBox.SelectedIndex].X64R = (bool)((CheckBox)sender).IsChecked;
-            _config.SaveConfig();
+            _config.Save();
         }
 
         private void x64D_checkbox_CheckedChange( object sender, RoutedEventArgs e )
@@ -309,7 +342,7 @@ namespace BuildHelper
             if ( ProjectListBox.SelectedIndex < 0 )
                 return;
             _config.Prjcfg[ProjectListBox.SelectedIndex].X64D = (bool)( (CheckBox)sender ).IsChecked;
-            _config.SaveConfig();
+            _config.Save();
         }
 
         private void x86R_checkbox_CheckedChange( object sender, RoutedEventArgs e )
@@ -317,7 +350,7 @@ namespace BuildHelper
             if ( ProjectListBox.SelectedIndex < 0 )
                 return;
             _config.Prjcfg[ProjectListBox.SelectedIndex].X86R = (bool)( (CheckBox)sender ).IsChecked;
-            _config.SaveConfig();
+            _config.Save();
         }
 
         private void x86D_checkbox_CheckedChange( object sender, RoutedEventArgs e )
@@ -325,7 +358,15 @@ namespace BuildHelper
             if ( ProjectListBox.SelectedIndex < 0 )
                 return;
             _config.Prjcfg[ProjectListBox.SelectedIndex].X86D = (bool)( (CheckBox)sender ).IsChecked;
-            _config.SaveConfig();
+            _config.Save();
+        }
+
+        private void OnRebuildCbx_CheckedChange(object sender, RoutedEventArgs e)
+        {
+            if (ProjectListBox.SelectedIndex < 0)
+                return;
+            _config.Prjcfg[ProjectListBox.SelectedIndex].Rebuild = (bool)((CheckBox)sender).IsChecked;
+            _config.Save();
         }
 
         private void ProjectListBox_SelectionChanged( object sender, SelectionChangedEventArgs e )
@@ -336,6 +377,7 @@ namespace BuildHelper
             X64RCheckbox1.IsChecked = ( ProjectListBox.Items[ProjectListBox.SelectedIndex] as Project ).X64R;
             X86RCheckbox1.IsChecked = ( ProjectListBox.Items[ProjectListBox.SelectedIndex] as Project ).X86R;
             X86DCheckbox1.IsChecked = ( ProjectListBox.Items[ProjectListBox.SelectedIndex] as Project ).X86D;
+            CbxRebuild.IsChecked = (ProjectListBox.Items[ProjectListBox.SelectedIndex] as Project ).Rebuild;
         }
 
         private void OnClearClick(object sender, RoutedEventArgs e)
@@ -361,12 +403,10 @@ namespace BuildHelper
                 return;
             }
 
-            var proj = new Project();
-            proj.ProjectName = ProjectnameTextbox.Text;
-            proj.ProjectPath = ProjectpathTextbox.Text;
+            var proj = new Project {ProjectName = ProjectnameTextbox.Text, ProjectPath = ProjectpathTextbox.Text};
             ProjectListBox.Items.Add(proj);
             _config.Prjcfg.Add(proj);
-            _config.SaveConfig();
+            _config.Save();
             ProjectnameTextbox.Clear();
             ProjectpathTextbox.Clear();
         }
@@ -379,24 +419,31 @@ namespace BuildHelper
             ProjectListBox.Items.Clear();
             foreach ( var item in _config.Prjcfg )
                 ProjectListBox.Items.Add(item);
-            _config.SaveConfig();
+            _config.Save();
         }
 
         private async void FetchButton_OnClick( object sender, RoutedEventArgs e )
         {
-            Launch.IsEnabled = false;
             string userName = TfsUsernameTextbox.Text;
             string userPass = PwPasswordbox.Password;
             string tfsPath = TfsPathTextbox.Text;
             string tfsWorkSpace = TfsWorkspaceTextbox.Text;
             string requestPath = RequestpathTextbox.Text;
-
-            _controller = await this.ShowProgressAsync("Please wait", "Downloading...", true);
             GetOptions opts = GetFetchOptions();
-            await Task.Run(( ) => FetchCode(userName, userPass, tfsPath, tfsWorkSpace, requestPath, opts));
-            Launch.IsEnabled = true;
-            await _controller.CloseAsync();
 
+            _controller = await this.ShowProgressAsync("Please wait", "Downloading...");
+            _controller.SetCancelable(true);
+            _timer.Tick += CheckFetchDialogCancelled;
+            await Task.Run(( ) => FetchCode(userName, userPass, tfsPath, tfsWorkSpace, requestPath, opts));
+            _timer.Tick -= CheckFetchDialogCancelled;
+            _controller.CloseAsync();
+        }
+
+        void CheckFetchDialogCancelled( object sender, EventArgs e )
+        {
+            if (!_controller.IsCanceled)
+                return;
+            _controller.CloseAsync();
         }
 
         private void OnGettingEvent( object sender, GettingEventArgs e )
@@ -405,13 +452,13 @@ namespace BuildHelper
                 return;
             _itemCount++;
             double progress = _itemCount / (double)e.Total;
-            this.Dispatcher.Invoke(( ) =>
+            this.Dispatcher.Invoke(() =>
             {
                 if ( progress > 1 )
                     _controller.SetProgress((int)progress);
                 else
                     _controller.SetProgress(progress);
-                _controller.SetMessage("Downloading...\n" + _itemCount.ToString() + " of "+ e.Total.ToString() + ": "+ e.ServerItem);
+                _controller.SetMessage("Downloading...\n" + _itemCount + " of "+ e.Total + ": \n"+ e.ServerItem);
             });
         }
 
@@ -427,7 +474,7 @@ namespace BuildHelper
             _config.Tfscfg.TfsWorkspace = TfsWorkspaceTextbox.Text;
             _config.Tfscfg.RequestPath = RequestpathTextbox.Text;
             _config.Tfscfg.PassWord = PwPasswordbox.Password;
-            _config.SaveConfig();
+            _config.Save();
         }
 
 
@@ -498,23 +545,10 @@ namespace BuildHelper
             _scheduleTimer.Start();
 
             //fetch code option checked
-            if ( FetchOnLaunchCheckbox.IsChecked == true )
-            {
-                Launch.IsEnabled = false;
-                string userName = TfsUsernameTextbox.Text;
-                string userPass = PwPasswordbox.Password;
-                string tfsPath = TfsPathTextbox.Text;
-                string tfsWorkSpace = TfsWorkspaceTextbox.Text;
-                string requestPath = RequestpathTextbox.Text;
-
-                _controller = await this.ShowProgressAsync("Please wait", "Downloading...", true);
-                GetOptions opts = GetFetchOptions();
-                await Task.Run(( ) => FetchCode(userName, userPass, tfsPath, tfsWorkSpace, requestPath, opts));
-                Launch.IsEnabled = true;
-                await _controller.CloseAsync();
-            }
+            if (FetchOnLaunchCheckbox.IsChecked == true)
+                FetchButton_OnClick(null, null);
             //launch builds
-            LaunchButton_OnClick(sender, new RoutedEventArgs());
+            LaunchButton_OnClick(null, null);
         }
 
         TimeSpan GetTriggerTimeSpan( )
@@ -556,15 +590,14 @@ namespace BuildHelper
 
         private void calculatestats_btn_Click( object sender, RoutedEventArgs e )
         {
-            if ( ProjectListBox.SelectedIndex >= 0 )
-            {
-                Stats stats = new Stats();
-                stats.Calculate(( ProjectListBox.Items[ProjectListBox.SelectedIndex] as Project ).BuildTimes);
-                TimeSpan mutime = new TimeSpan((long)stats.Mu);
-                TimeSpan sigmatime = new TimeSpan((long)stats.Sigma);
-                MuTbx.Text = mutime.ToString(@"hh':'mm':'ss");
-                SigmaTbx.Text = sigmatime.ToString(@"hh':'mm':'ss");
-            }
+            if (ProjectListBox.SelectedIndex < 0) 
+                return;
+            Stats stats = new Stats();
+            stats.Calculate(( ProjectListBox.Items[ProjectListBox.SelectedIndex] as Project ).BuildTimes);
+            TimeSpan mutime = new TimeSpan((long)stats.Mu);
+            TimeSpan sigmatime = new TimeSpan((long)stats.Sigma);
+            MuTbx.Text = mutime.ToString(@"hh':'mm':'ss");
+            SigmaTbx.Text = sigmatime.ToString(@"hh':'mm':'ss");
         }
 
     }

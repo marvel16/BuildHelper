@@ -27,12 +27,13 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition/>
                     </Grid.ColumnDefinitions>
-                    <GroupBox x:Name="BuildOptionsGroupboxCopy" Header="Build config" HorizontalAlignment="Right" Height="182" Margin="0,42,46,0" VerticalAlignment="Top" Width="135">
+                    <GroupBox x:Name="BuildOptionsGroupboxCopy" Header="Build config" HorizontalAlignment="Right" Height="216" Margin="0,42,46,0" VerticalAlignment="Top" Width="135">
                         <Grid x:Name="GrpboxGrid1" Margin="-3,2,-2,2">
                             <CheckBox x:Name="X64DCheckbox1" Content="Debug x64" HorizontalAlignment="Center" Height="25" Margin="10,40,0,0" VerticalAlignment="Top" Width="100" Foreground="White" Checked="x64D_checkbox_CheckedChange" Unchecked="x64D_checkbox_CheckedChange"/>
                             <CheckBox x:Name="X64RCheckbox1" Content="Release x64" HorizontalAlignment="Center" Height="25" Margin="10,10,0,0" VerticalAlignment="Top" Width="100" Foreground="#FFFDFDFD" Checked="x64R_checkbox_CheckedChange" Unchecked="x64R_checkbox_CheckedChange"/>
                             <CheckBox x:Name="X86RCheckbox1" Content="Release x86" HorizontalAlignment="Center" Margin="10,70,0,0" VerticalAlignment="Top" Foreground="White" Width="100" Height="25" Checked="x86R_checkbox_CheckedChange" Unchecked="x86R_checkbox_CheckedChange"/>
                             <CheckBox x:Name="X86DCheckbox1" Content="Debug x86" HorizontalAlignment="Center" Margin="10,100,0,0" VerticalAlignment="Top" Foreground="White" Width="100" Height="25" Checked="x86D_checkbox_CheckedChange" Unchecked="x86D_checkbox_CheckedChange"/>
+                            <CheckBox x:Name="CbxRebuild" Content="Rebuild" HorizontalAlignment="Center" Margin="19,130,9,0" VerticalAlignment="Top" Foreground="White" Width="100" Height="25" Checked="OnRebuildCbx_CheckedChange" Unchecked="OnRebuildCbx_CheckedChange"/>
                         </Grid>
                     </GroupBox>
                     <Button x:Name="RemoveprojectButton" Content="Remove project" Margin="0,0,244,14"
@@ -63,9 +64,6 @@
                 <Grid Margin="3,3,3,3">
                     <GroupBox x:Name="SourceControl" Header="Source Control: TFS" Margin="43,28,33,28">
                         <Grid x:Name="SrcGrid" Margin="3,3,3,3" MinHeight="301">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition/>
-                            </Grid.ColumnDefinitions>
                             <TextBox x:Name="TfsPathTextbox" Height="14" Margin="10,22,10,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top"
                 				controls:TextBoxHelper.ClearTextButton="True"
                 				controls:TextBoxHelper.Watermark="Enter TFS path e.g. http://tfs.resource.corp:8080/tfs/DMS"/>
@@ -110,7 +108,7 @@
                         <ListView.ContextMenu>
                             <ContextMenu>
                                 <MenuItem Header="Clear Output" Click="OnClearClick"/>
-                                <MenuItem Header="Clear Log File" Click="OnClearLogFileClick"/>
+                                <MenuItem Header="Clear Write File" Click="OnClearLogFileClick"/>
                             </ContextMenu>
                         </ListView.ContextMenu>
                         <TextBlock Padding="0,0,10,0" 
