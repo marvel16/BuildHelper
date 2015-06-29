@@ -42,7 +42,7 @@ namespace BuildHelper
             InitializeComponent();
             _config.LoadConfig();
 
-            foreach ( var item in _config.Prjcfg )
+            foreach (var item in _config.Prjcfg)
                 ProjectListBox.Items.Add(item);
             //initialize field from config
             TfsUsernameTextbox.Text = _config.Tfscfg.UserName;
@@ -66,7 +66,7 @@ namespace BuildHelper
         private void dispatcherTimer_Tick( object sender, EventArgs e )
         {
             // Updating the Label which displays the current second
-            TimerLabel.Content = ( DateTime.Now - _startTime ).ToString(@"hh':'mm':'ss");
+            TimerLabel.Content = (DateTime.Now - _startTime).ToString(@"hh':'mm':'ss");
         }
 
         private void LaunchButton_OnClick( object sender, EventArgs e )
@@ -182,8 +182,9 @@ namespace BuildHelper
                 SolidColorBrush itemColor = Brushes.White; 
                 Logger.Write(message);
                 
-                if (Regex.Matches(message, @"\b[Ee]rror:\b").Count > 0 || Regex.Matches(message, @"[1-9] \bfailed\b").Count > 0 ||
-                    Regex.Matches(message, @"\bnot found\b").Count > 0 || Regex.Matches(message, @"\b[Uu]nresolved\b").Count > 0)
+                if (Regex.Matches(message, @"\b[Ee]rror:\b").Count > 0 || Regex.Matches(message, @"\b[Ff][Aa][Ii][Ll][Ee][Dd]\b").Count > 0 ||
+                    Regex.Matches(message, @"\bnot found\b").Count > 0 || Regex.Matches(message, @"\b[Uu]nresolved\b").Count > 0 ||
+                    Regex.Matches(message, @"\b[Nnot] open\b").Count > 0)
                 {
                     isWarningErrorSuccess = true;
                     itemColor = Brushes.Red;
@@ -193,11 +194,12 @@ namespace BuildHelper
                     isWarningErrorSuccess = true;
                     itemColor = Brushes.Orange;
                 }
-                else if ( Regex.Matches(message, @"\b[Ss]ucceeded\b").Count > 0 )
+                else if (Regex.Matches(message, @"\b[Ss]ucceeded\b").Count > 0 || message.Contains("started: Project:"))
                 {
                     isWarningErrorSuccess = true;
                     itemColor = Brushes.Green;
                 }
+                
                 string messageCopy = message;
                 if (isWarningErrorSuccess)
                 {
@@ -428,8 +430,14 @@ namespace BuildHelper
             _config.Save();
         }
 
+        delegate void FetchButton_OnClick_Delegate( object sender, RoutedEventArgs e );
         private async void FetchButton_OnClick( object sender, RoutedEventArgs e )
         {
+            if (!Dispatcher.CheckAccess()) // CheckAccess returns true if you're on the dispatcher thread
+            {
+                Dispatcher.Invoke(new FetchButton_OnClick_Delegate(FetchButton_OnClick), sender, e);
+                return;
+            }
             string userName = TfsUsernameTextbox.Text;
             string userPass = PwPasswordbox.Password;
             string tfsPath = TfsPathTextbox.Text;
@@ -535,15 +543,17 @@ namespace BuildHelper
             _scheduleTimer.Start();
         }
 
-        private void Scheduletimer_Tick( object sender, EventArgs e )
+        private async void Scheduletimer_Tick( object sender, EventArgs e )
         {
             _scheduleTimer.Stop();
             _scheduleTimer.Interval = GetTriggerTimeSpan(); //set next tick timespan
             _scheduleTimer.Start();
 
+
+            
             //fetch code option checked
             if (FetchOnLaunchCheckbox.IsChecked == true)
-                FetchButton_OnClick(null, null);
+                await Task.Run(() => FetchButton_OnClick(null, null));
             //launch builds
             LaunchButton_OnClick(null, null);
         }
@@ -560,8 +570,7 @@ namespace BuildHelper
                 MTimepicker.Value = schedTime;
             }
 
-            var timespan = schedTime - now;
-            return timespan;
+            return schedTime - now;
         }
 
         private void runschedule_btn_Click( object sender, RoutedEventArgs e )
