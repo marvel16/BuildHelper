@@ -430,14 +430,13 @@ namespace BuildHelper
             _config.Save();
         }
 
-        delegate void FetchButton_OnClick_Delegate( object sender, RoutedEventArgs e );
         private async void FetchButton_OnClick( object sender, RoutedEventArgs e )
         {
-            if (!Dispatcher.CheckAccess()) // CheckAccess returns true if you're on the dispatcher thread
-            {
-                Dispatcher.Invoke(new FetchButton_OnClick_Delegate(FetchButton_OnClick), sender, e);
-                return;
-            }
+            await FetchCodeAsync();
+        }
+
+        private async Task FetchCodeAsync()
+        {
             string userName = TfsUsernameTextbox.Text;
             string userPass = PwPasswordbox.Password;
             string tfsPath = TfsPathTextbox.Text;
@@ -449,7 +448,6 @@ namespace BuildHelper
             await Task.Run(() => FetchCode(userName, userPass, tfsPath, tfsWorkSpace, requestPath, opts));
             await _controller.CloseAsync();
         }
-
 
         private void OnGettingEvent( object sender, GettingEventArgs e )
         {
@@ -553,7 +551,7 @@ namespace BuildHelper
             
             //fetch code option checked
             if (FetchOnLaunchCheckbox.IsChecked == true)
-                await Task.Run(() => FetchButton_OnClick(null, null));
+                await FetchCodeAsync();
             //launch builds
             LaunchButton_OnClick(null, null);
         }
